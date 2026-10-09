@@ -9,7 +9,7 @@ import com.shilapi.xcertplay.iap2.wire.Iap2Frame
  * without a status leave the state as it is.
  */
 class CarPlayPlaybackStatus {
-    var playing = false
+    var playing: Boolean? = null
         private set
 
     /** The new state when [frame] changed it, otherwise null. */
@@ -24,11 +24,11 @@ class CarPlayPlaybackStatus {
         return next
     }
 
-    /** The session ended: nothing plays any more. */
+    /** Forget the old session so the next wheel press cannot act on stale state. */
     fun clear(): Boolean? {
-        if (!playing) return null
-        playing = false
-        return false
+        val previous = playing
+        playing = null
+        return if (previous == true) false else null
     }
 
     companion object {

@@ -3,6 +3,7 @@ package com.shilapi.xcertplay
 import android.content.Intent
 import android.view.KeyEvent
 import com.shilapi.xcertplay.airplay.CarPlayMediaButton
+import com.shilapi.xcertplay.airplay.CarPlayTelephonyButton
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -29,12 +30,15 @@ class CarPlayMediaCallbackTest {
     }
 
     @Test
-    fun hardwarePlayAndPauseKeysToggle() {
+    fun hardwarePlayAndPauseKeysKeepTheirMeaning() {
         press(KeyEvent.KEYCODE_MEDIA_PLAY)
         press(KeyEvent.KEYCODE_MEDIA_PAUSE)
-        press(CarPlayMediaButton.KEYCODE_BYD_AUTO_MEDIA_PLAY_PAUSE)
+        press(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
 
-        assertEquals(List(3) { CarPlayMediaButton.PLAY_PAUSE }, sent)
+        assertEquals(
+            listOf(CarPlayMediaButton.PLAY, CarPlayMediaButton.PAUSE, CarPlayMediaButton.PLAY_PAUSE),
+            sent,
+        )
     }
 
     @Test
@@ -43,6 +47,34 @@ class CarPlayMediaCallbackTest {
         callback.onMediaButtonEvent(button(KeyEvent(0, 0, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_NEXT, 0)))
 
         assertEquals(listOf(CarPlayMediaButton.NEXT), sent)
+    }
+
+    @Test
+    fun changanSteeringKeysMapToCarPlayControls() {
+        assertEquals(CarPlayMediaButton.PLAY_PAUSE, carPlayButtonForChanganKey("MUTE", "DOWN"))
+        assertEquals(CarPlayMediaButton.PREVIOUS, carPlayButtonForChanganKey("PRE", "NONE"))
+        assertEquals(CarPlayMediaButton.NEXT, carPlayButtonForChanganKey("NEXT", "DOWN"))
+        assertEquals(null, carPlayButtonForChanganKey("VOLUP", "DOWN"))
+        assertEquals(null, carPlayButtonForChanganKey("NEXT", "UP"))
+    }
+
+    @Test
+    fun changanMuteTransitionsMapToExplicitPauseAndPlay() {
+        assertEquals(null, carPlayButtonForMuteTransition(null, false))
+        assertEquals(null, carPlayButtonForMuteTransition(false, false))
+        assertEquals(CarPlayMediaButton.PAUSE, carPlayButtonForMuteTransition(false, true))
+        assertEquals(null, carPlayButtonForMuteTransition(true, true))
+        assertEquals(CarPlayMediaButton.PLAY, carPlayButtonForMuteTransition(true, false))
+        assertEquals(CarPlayMediaButton.PLAY, carPlayButtonForMuteTransition(false, true, playing = false))
+        assertEquals(CarPlayMediaButton.PAUSE, carPlayButtonForMuteTransition(true, false, playing = true))
+    }
+
+    @Test
+    fun changanPhoneKeysMapToCarPlayTelephonyControls() {
+        assertEquals(CarPlayTelephonyButton.HOOK_SWITCH, carPlayTelephonyButtonForChanganKey("TEL", "NONE"))
+        assertEquals(CarPlayTelephonyButton.DROP, carPlayTelephonyButtonForChanganKey("HANDUP", "NONE"))
+        assertEquals(null, carPlayTelephonyButtonForChanganKey("TEL", "UP"))
+        assertEquals(null, carPlayTelephonyButtonForChanganKey("MUTE", "NONE"))
     }
 
     private fun press(keyCode: Int, repeat: Int = 0) {

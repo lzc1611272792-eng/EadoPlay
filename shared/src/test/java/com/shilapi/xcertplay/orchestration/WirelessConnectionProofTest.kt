@@ -1,9 +1,28 @@
 package com.shilapi.xcertplay.orchestration
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WirelessConnectionProofTest {
+    @Test fun renderedFrameBelongsOnlyToTheCurrentLiveSession() {
+        val proof = WirelessConnectionProof<Any>()
+        val first = Any()
+        val second = Any()
+        proof.begin(1) {}
+        proof.activate(1, first)
+        assertFalse(proof.hasRenderedFrame(1, first))
+        proof.rendered(1, first)
+        assertTrue(proof.hasRenderedFrame(1, first))
+        assertFalse(proof.hasRenderedFrame(1, second))
+        proof.end(1, first)
+        assertFalse(proof.hasRenderedFrame(1, first))
+        proof.begin(2) {}
+        proof.activate(2, second)
+        assertFalse(proof.hasRenderedFrame(2, second))
+    }
+
     @Test fun authenticationWithoutVideoDoesNotConfirm() {
         var saves = 0
         val proof = WirelessConnectionProof<Any>()

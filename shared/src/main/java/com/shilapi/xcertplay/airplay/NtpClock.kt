@@ -1,11 +1,13 @@
 package com.shilapi.xcertplay.airplay
 
+import android.util.Log
 import java.io.Closeable
 import java.math.BigInteger
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import java.net.ServerSocket
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -37,9 +39,7 @@ class NtpClock : Closeable {
 
     fun listen(): Int {
         check(!running.getAndSet(true)) { "NtpClock is already running" }
-        val bound = DatagramSocket(null)
-        bound.reuseAddress = true
-        bound.bind(InetSocketAddress(InetAddress.getByName("::"), 0))
+        val bound = bindWildcardDatagram("airplay NTP")
         synchronized(socketLock) { socket = bound }
         receiver = Thread(::runReceiver, "airplay-ntp-rx").apply { isDaemon = true; start() }
         return bound.localPort
@@ -195,6 +195,40 @@ class NtpClock : Closeable {
         const val PICK_COUNT = 2
         const val TWO32_DOUBLE = 0x1_0000_0000L.toDouble()
     }
+}
+
+/**
+ * Android 4.4's libcore can resolve "::" but reject binding it as a link-local address without
+ * a scope id. Newer Android releases accept the same wildcard bind. Keep dual-stack where it
+ * works and fall back to the IPv4 wildcard used by the proven legacy receiver path.
+ */
+internal fun bindWildcardDatagram(label: String): DatagramSocket {
+    var ipv6: DatagramSocket? = null
+    try {
+        ipv6 = DatagramSocket(null).apply { reuseAddress = true }
+        ipv6.bind(InetSocketAddress(InetAddress.getByName("::"), 0))
+        return ipv6
+    } catch (ipv6Error: Exception) {
+        runCatching { ipv6?.close() }
+        Log.w("xcertplay-usb", "$label IPv6 wildcard bind failed; falling back to IPv4", ipv6Error)
+    }
+
+    return DatagramSocket(null).apply {
+        reuseAddress = true
+        bind(InetSocketAddress(InetAddress.getByName("0.0.0.0"), 0))
+    }
+}
+
+internal fun bindWildcardServer(label: String): ServerSocket {
+    var ipv6: ServerSocket? = null
+    try {
+        ipv6 = ServerSocket(0, 50, InetAddress.getByName("::"))
+        return ipv6
+    } catch (ipv6Error: Exception) {
+        safeClose(ipv6)
+        Log.w("xcertplay-usb", "$label IPv6 wildcard bind failed; falling back to IPv4", ipv6Error)
+    }
+    return ServerSocket(0, 50, InetAddress.getByName("0.0.0.0"))
 }
 
 private const val NTP_EPOCH_OFFSET = 2_208_988_800L

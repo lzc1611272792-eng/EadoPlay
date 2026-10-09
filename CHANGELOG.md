@@ -1,3 +1,15 @@
+# EadoPlay 0.2.7-4.4-eado-r17 — 2026-10-08
+
+- Adapt the application identity, interface, and defaults for the 2018 Changan Eado Android 4.4.2 head unit.
+- Remove BYD HUD, cluster, and vehicle-specific background integrations not used by the target car.
+- Add detailed connection-stage diagnostics and Android 4.4 compatibility paths for hotspot, Bluetooth, audio, and video.
+- Add Changan steering-wheel media controls and system-call answer/hang-up handling.
+- Improve playback-state synchronization, audio focus behavior, navigation ducking, and vendor mute-state bridging.
+- Add legacy Opus support and video queue recovery for the target i.MX6-class platform.
+- Improve wireless handoff, IPv4 discovery, and mDNS fallback behavior.
+- Add experimental SurfaceView/TextureView, frame-rate, resolution, and audio-routing settings.
+- Wireless CarPlay is vehicle-tested; wired USB remains blocked at the target firmware's USB Host permission stage.
+
 # DiPlay 0.2.7 — 2026-09-29
 
 - App interface in English, Simplified Chinese, Arabic, Russian and Spanish; synchronized Android app-language settings.

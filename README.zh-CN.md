@@ -1,16 +1,52 @@
-﻿# DiPlay Legacy Android
+# EadoPlay
 
-> 本项目基于 [shihabal3amri/DiPlay](https://github.com/shihabal3amri/DiPlay) 修改，重点增强对低版本 Android 系统及老款 Android 车机的兼容支持。
+EadoPlay 是面向 **2018 款长安逸动原厂 Android 4.4.2 车机**适配的 CarPlay 客户端，基于 [shihabal3amri/DiPlay](https://github.com/shihabal3amri/DiPlay)、[DiPlay-Legacy-Android](https://github.com/programmerguohuajing/DiPlay-Legacy-Android) 及其上游 [xcertplay](https://github.com/shilapi/xcertplay) 修改。
 
-> 上游项目：https://github.com/shihabal3amri/DiPlay
+当前实车测试版本：`0.2.7-4.4-eado-r17`。
 
-为兼容的比亚迪安卓车机提供有线及无线 CarPlay，采用 DiAuto 风格界面。
+## 当前状态
 
-> 这些项目专注于比亚迪汽车。它们可能在其他品牌上运行，但其他品牌不在支持范围内，也没有增加支持或修复其品牌特定兼容性问题的计划。
+- 无线 CarPlay 已在目标车机上实车连通，可使用导航、媒体音频和触控。
+- 已适配方控音量、播放/暂停、上一曲、下一曲，以及系统电话接听/挂断。
+- 包含 Android 4.4.2 所需的音频、视频、网络和后台服务兼容处理。
+- 提供 30/60 帧、分辨率比例及 SurfaceView/TextureView 等实验设置。
+- 连接页面会显示详细阶段与失败节点，便于实车排查。
+- 有线 CarPlay 已包含 USB Host 实现，但目标车机目前仍卡在 Android USB 授权阶段，尚未完成端到端验证。
 
-[下载与中文网站](https://shihabal3amri.github.io/DiPlay/zh-Hans/) · [完整说明](README.md) · [报告问题](https://github.com/shihabal3amri/DiPlay/issues/new/choose)
+## 下载、源码构建与认证材料
 
-0.2.7 为公开预览版，未经 Apple 认证。请安装在车机上，而非 iPhone。无需越狱、转接盒或认证服务器。移动版 APK 现支持 Android 4.4（API 19）及以上版本：Android 4.4–7 的无线连接使用手动配置的车载热点，Android 8 及以上可使用 LocalOnlyHotspot，Wi-Fi Direct 仍需要 Android 10 或更高版本；有线 USB 路径在低版本上使用兼容实现。
+Git 源码不包含配件证书、私钥、Android 发布签名或真实手机配对记录。普通源码构建用于开发和审查，不具备独立完成 CarPlay 配件认证所需的运行时身份。
 
-认证使用从公开固件中提取的实验性配件身份，无法保证未来持续可用。部分车机仍可能卡顿或无法应用图标大小设置。应用界面支持英语、简体中文、阿拉伯语、俄语和西班牙语。源代码、构建说明及许可证随版本提供。
+项目 Release 中提供的实车测试 APK 会按照上游项目的公开发布方式，显式注入一套从公开 Carlinkit 固件研究中获得的实验性配件身份。该身份可以被任何 APK 接收者提取；它不是为 EadoPlay 新签发的 Apple/MFi 身份，也不保证未来 iOS 继续接受。详情见 [安全说明](SECURITY.md)、[构建说明](docs/BUILD.md) 和 [第三方声明](docs/THIRD_PARTY_NOTICES.md)。
 
+源码构建：
+
+```powershell
+.\gradlew.bat :mobile:assembleDebug
+```
+
+若要构建可独立连接 iPhone 的测试 APK，需在 Git 仓库之外自行准备认证资产，并通过 `DIPLAY_AUTH_ASSETS_DIR` 显式注入。不要把这些文件提交到 Git。
+
+## 车机安装
+
+目标车机的厂商固件会拒绝普通第三方 APK 安装，实车使用了工程 ADB 将 APK 写入 `/data/app` 的设备特定方式：
+
+- [长安逸动 2018 车机 ADB 安装 APK 操作手册](docs/长安逸动2018车机ADB安装APK操作手册.md)
+- [EadoPlay 优化实施方案](docs/长安逸动EadoPlay优化实施方案.md)
+
+该方法依赖目标车机开放的工程调试权限，不保证适用于其他车辆。操作前应备份应用数据，禁止盲目修改其他系统文件。
+
+## 免责声明
+
+- 本项目是独立的社区研究和兼容性实验，不是 Apple、长安汽车、Carlinkit 或上游作者的官方产品，也不代表上述主体的认可或合作。
+- CarPlay、Apple 及相关标志是 Apple Inc. 的商标或资产；长安及车型名称归各自权利人所有。项目中的名称仅用于说明兼容目标。
+- 实验性认证数据的来源、权利状态、持续有效性和一般分发适用性均不作保证。使用者应自行确认当地法律、协议和设备保修要求。
+- 本软件按现状提供，不承诺适销性、特定用途适用性、稳定性或普遍兼容性。安装、使用、改装车辆系统造成的风险由使用者自行承担。
+- 禁止以本项目冒充官方产品、认证产品或进行误导性商业宣传。分发修改版时必须保留相应开源许可证、来源、版权和第三方声明。
+- 实车操作必须在安全停车状态下进行，不要在驾驶过程中安装、调整设置或查看日志。
+
+## 开源许可与致谢
+
+核心接收端继承自 xcertplay/DiPlay，适用 GNU GPL v3；部分界面源自 DiAuto，适用 AGPL v3。完整文本和第三方许可位于 [LICENSE](LICENSE)、`docs/licenses` 与 [第三方声明](docs/THIRD_PARTY_NOTICES.md)。
+
+感谢 xcertplay、DiPlay、DiPlay-Legacy-Android、DiAuto、LIVI、Showcase 及相关开源贡献者。本仓库的独立名称和长安逸动适配不改变上游作者对原始工作的权利。

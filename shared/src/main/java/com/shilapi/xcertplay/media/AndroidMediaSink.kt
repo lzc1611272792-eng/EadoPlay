@@ -8,6 +8,7 @@ import android.media.MediaCodec
 import android.media.MediaCodecList
 import android.media.MediaFormat
 import android.os.Build
+import android.os.Process
 import android.util.Log
 import android.view.Surface
 import androidx.annotation.RequiresApi
@@ -20,9 +21,11 @@ import com.shilapi.xcertplay.airplay.toHexString
 import java.io.Closeable
 import java.nio.ByteBuffer
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.pow
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.TimeUnit
@@ -53,6 +56,7 @@ class AndroidMediaSink(
     private val videoDecoders = ConcurrentHashMap<Int, VideoDecoder>()
     private val mediaAudioTypes = mutableSetOf<Int>()
     private val audioRenderers = ConcurrentHashMap<Int, AudioRenderer>()
+    @Volatile private var mediaAudioGain = 1f
     private val microphoneUplinks = ConcurrentHashMap<Int, MicrophoneUplink>()
     private val pendingVideoCodec = ConcurrentHashMap<Int, VideoCodec>()
     private val videoRecoveryHandlers = ConcurrentHashMap<Int, () -> Unit>()
@@ -88,6 +92,33 @@ class AndroidMediaSink(
 
     fun clearSurface(type: Int, surface: Surface) {
         if (surfaces.remove(type, surface)) videoDecoders[type]?.setSurface(null)
+    }
+
+    /**
+     * Detaches every requested decoder before a TextureView-owned Surface is released.
+     * The wait is bounded so a wedged vendor codec can never block the UI indefinitely.
+     */
+    fun clearSurfacesAndAwait(surface: Surface, timeoutMillis: Long, vararg types: Int): Boolean {
+        require(timeoutMillis >= 0) { "timeoutMillis must not be negative" }
+        val completions = ArrayList<CountDownLatch>(types.size)
+        types.forEach { type ->
+            if (surfaces.remove(type, surface)) {
+                videoDecoders[type]?.detachSurface()?.let(completions::add)
+            }
+        }
+        val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis)
+        var completed = true
+        completions.forEach { completion ->
+            val remaining = deadline - System.nanoTime()
+            val acknowledged = remaining > 0 && try {
+                completion.await(remaining, TimeUnit.NANOSECONDS)
+            } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+                false
+            }
+            if (!acknowledged) completed = false
+        }
+        return completed
     }
 
     fun setScreenStreamActiveChangedListener(listener: ((Int, Boolean) -> Unit)?) {
@@ -135,6 +166,19 @@ class AndroidMediaSink(
     override fun onAudioStopped(type: Int) {
         audioRenderers.remove(type)?.close()
         updateMediaAudio(type, false)
+    }
+
+    override fun onAudioDucking(volumeDb: Double, durationMs: Int) {
+        val gain = audioGainForDb(volumeDb)
+        mediaAudioGain = gain
+        audioRenderers.values
+            .filter { it.format.audioType == "media" }
+            .forEach { it.setOutputGain(gain) }
+        Log.i("xcertplay-usb", "CarPlay media volume volumeDb=$volumeDb gain=$gain durationMs=$durationMs")
+        onAudioDiagnostic(
+            "Audio: media volume ${if (gain < 0.999f) "ducked" else "restored"} " +
+                "db=$volumeDb durationMs=$durationMs",
+        )
     }
 
     private fun updateMediaAudio(type: Int, active: Boolean) {
@@ -192,9 +236,15 @@ class AndroidMediaSink(
         val existing = audioRenderers[type]
         if (existing?.format == format) return existing
         existing?.close()
-        return AudioRenderer(format, advancedAudioChannelMapping, navigationStreamType, mediaBufferMillis, onAudioDiagnostic).also { audioRenderers[type] = it }
+        return AudioRenderer(format, advancedAudioChannelMapping, navigationStreamType, mediaBufferMillis, onAudioDiagnostic).also {
+            if (format.audioType == "media") it.setOutputGain(mediaAudioGain)
+            audioRenderers[type] = it
+        }
     }
 }
+
+internal fun audioGainForDb(volumeDb: Double): Float =
+    10.0.pow(volumeDb.coerceIn(-60.0, 0.0) / 20.0).toFloat().coerceIn(0.001f, 1f)
 
 /** Serial MediaCodec video decoder: one worker owns configure and frame feeding. */
 private class VideoDecoder(
@@ -216,6 +266,7 @@ private class VideoDecoder(
     private var duplicateConfigLogged = false
     private val referenceChain = VideoReferenceChain()
     private var lastKeyFrameRequestNs = 0L
+    private val outputInfo = MediaCodec.BufferInfo()
     // The main screen keeps the historical log format; other screens are labelled.
     private val stats = VideoStats(if (streamType == 110) "" else " stream=$streamType")
     private val thread = Thread(::run, "carplay-video").apply { isDaemon = true; start() }
@@ -233,12 +284,17 @@ private class VideoDecoder(
         queue.offer(VideoJob.SurfaceChanged(surface))
     }
 
+    fun detachSurface(): CountDownLatch = CountDownLatch(1).also { completion ->
+        queue.offer(VideoJob.SurfaceChanged(null, completion))
+    }
+
     override fun close() {
         running = false
         thread.interrupt()
     }
 
     private fun run() {
+        runCatching { Process.setThreadPriority(Process.THREAD_PRIORITY_DISPLAY) }
         try {
             while (running) {
                 val job = queue.poll(5)
@@ -251,7 +307,11 @@ private class VideoDecoder(
                                 recover("video backlog exceeded 250 ms")
                             } else feed(job.nalus)
                         }
-                        is VideoJob.SurfaceChanged -> changeSurface(job.surface)
+                        is VideoJob.SurfaceChanged -> try {
+                            changeSurface(job.surface)
+                        } finally {
+                            job.completion?.countDown()
+                        }
                         is VideoJob.Resync -> recover("video queue overflow")
                         null -> Unit
                     }
@@ -290,7 +350,7 @@ private class VideoDecoder(
         duplicateConfigLogged = false
         releaseDecoder()
         referenceChain.reset()
-        val surface = outputSurface ?: return
+        val surface = outputSurface?.takeIf(Surface::isValid) ?: return
         val codec = config.codec
         val codecData = config.codecData
         val mime = if (codec == VideoCodec.H265) MediaFormat.MIMETYPE_VIDEO_HEVC
@@ -356,9 +416,10 @@ private class VideoDecoder(
     }
 
     private fun changeSurface(surface: Surface?) {
-        if (outputSurface === surface) return
-        outputSurface = surface
-        if (surface == null) {
+        val validSurface = surface?.takeIf(Surface::isValid)
+        if (outputSurface === validSurface) return
+        outputSurface = validSurface
+        if (validSurface == null) {
             releaseDecoder()
             Log.i(TAG, "video decoder detached from surface")
             return
@@ -366,7 +427,7 @@ private class VideoDecoder(
         val codec = decoder
         if (codec != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
-                codec.setOutputSurface(surface)
+                codec.setOutputSurface(validSurface)
                 Log.i(TAG, "video decoder output surface updated")
                 return
             } catch (error: Exception) {
@@ -380,7 +441,7 @@ private class VideoDecoder(
     private fun feed(nalus: ByteArray) {
         val annexB = MediaCodecSupport.toAnnexB(nalus)
         val config = lastConfig ?: return
-        if (outputSurface == null) return
+        if (outputSurface?.isValid != true) return
         if (annexB.isEmpty()) { recover("invalid video access unit"); return }
         if (!referenceChain.accepts(annexB, config.codec)) {
             requestKeyFrameIfDue()
@@ -434,22 +495,21 @@ private class VideoDecoder(
     }
 
     private fun drainOutput(codec: MediaCodec) {
-        val info = MediaCodec.BufferInfo()
         while (running) {
-            val index = codec.dequeueOutputBuffer(info, 0)
+            val index = codec.dequeueOutputBuffer(outputInfo, 0)
             when {
                 index == MediaCodec.INFO_TRY_AGAIN_LATER -> return
                 index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> logOutputFormat(codec.outputFormat)
                 index >= 0 -> {
-                    val render = outputSurface != null
+                    val render = outputSurface?.isValid == true
                     codec.releaseOutputBuffer(index, render)
                     if (render) stats.onRendered()
                     if (render && !renderedFrameLogged) {
                         renderedFrameLogged = true
                         report("first frame rendered")
-                        Log.i(TAG, "video decoder rendered first frame bytes=${info.size}")
+                        Log.i(TAG, "video decoder rendered first frame bytes=${outputInfo.size}")
                     }
-                    if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) return
+                    if (outputInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) return
                 }
                 else -> return
             }
@@ -522,13 +582,21 @@ private class AudioRenderer(
     private val mediaBufferMillis: Int,
     private val report: (String) -> Unit,
 ) : Closeable {
+    @Volatile private var outputGain = 1f
     private data class AudioPacket(val rtp: ByteArray, val sample: Int)
 
     private val queue = LinkedBlockingQueue<AudioPacket>(MAX_QUEUED_PACKETS)
     @Volatile private var running = true
     @Volatile private var started = false
     private var codec: MediaCodec? = null
+    private var nativeOpusDecoder: NativeOpusDecoder? = null
     private var track: AudioTrack? = null
+
+    fun setOutputGain(gain: Float) {
+        outputGain = gain.coerceIn(0f, 1f)
+        @Suppress("DEPRECATION")
+        track?.setStereoVolume(outputGain, outputGain)
+    }
     private var pcm = ByteArray(64 * 1024)
     private var playbackStarted = false
     private var prebufferBytes = 0
@@ -588,7 +656,11 @@ private class AudioRenderer(
         try {
             when (format.codec) {
                 AudioCodecKind.AAC_LC -> configureCodec(MediaFormat.MIMETYPE_AUDIO_AAC)
-                AudioCodecKind.OPUS -> configureCodec(MediaFormat.MIMETYPE_AUDIO_OPUS)
+                AudioCodecKind.OPUS -> {
+                    nativeOpusDecoder = NativeOpusDecoder.create(format.sampleRate, format.channels)
+                    if (nativeOpusDecoder == null) configureCodec(MediaFormat.MIMETYPE_AUDIO_OPUS)
+                    else report("Audio: native Opus decoder ready rate=${format.sampleRate} channels=${format.channels}")
+                }
                 AudioCodecKind.LPCM -> Unit
             }
             createTrack()
@@ -704,6 +776,8 @@ private class AudioRenderer(
             )
         }
         track = built
+        @Suppress("DEPRECATION")
+        built.setStereoVolume(outputGain, outputGain)
         val capacityBytes = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             built.bufferSizeInFrames * frameBytes
         } else {
@@ -855,7 +929,12 @@ private class AudioRenderer(
                     }
                     return
                 }
-                feedCodec(accessUnit, timestampUs)
+                val nativeDecoder = nativeOpusDecoder
+                if (nativeDecoder != null) {
+                    nativeDecoder.decode(accessUnit, format.sampleRate / 25)?.let(::writePcm)
+                } else {
+                    feedCodec(accessUnit, timestampUs)
+                }
             }
         }
     }
@@ -1055,6 +1134,13 @@ private class AudioRenderer(
 
     @Synchronized
     private fun release() {
+        val nativeDecoder = nativeOpusDecoder
+        nativeOpusDecoder = null
+        try {
+            nativeDecoder?.close()
+        } catch (_: Exception) {
+            // Best effort.
+        }
         val codec = codec
         this.codec = null
         if (codec != null) {

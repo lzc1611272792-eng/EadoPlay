@@ -45,6 +45,10 @@ data class AirPlayConfig(
     val hevc: Boolean = false,
     val disableAudioOutput: Boolean = false,
     val microphone: Boolean = false,
+    /** Whether this host can decode Opus received from the iPhone. */
+    val opusDecodeSupported: Boolean = true,
+    /** Whether this host can encode Opus for the microphone uplink. */
+    val opusEncodeSupported: Boolean = true,
     val manufacturer: String = "xcertplay",
     val model: String = "xcertplay",
     val oemLabel: String = "xcertplay",

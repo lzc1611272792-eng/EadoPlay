@@ -7,7 +7,7 @@ body:
       value: 'Test while parked. Reports are public: review diagnostic files and remove personal information before attaching them. Never post credentials.'
   - type: input
     id: version
-    attributes: {label: DiPlay version, placeholder: '0.1.0'}
+    attributes: {label: EadoPlay version, placeholder: '0.2.7-4.4-eado-r17'}
     validations: {required: true}
   - type: input
     id: car
@@ -33,4 +33,4 @@ body:
     id: diagnostics
     attributes:
       label: Diagnostic report or recording
-      description: 'Settings → Save diagnostic report; Android 10+ saves to Downloads/DiPlay. Attach the reviewed file here. If export fails, describe exactly when.'
+      description: 'Settings → Save diagnostic report. Review the file and remove personal information before attaching it. Never upload credentials or pairing records.'

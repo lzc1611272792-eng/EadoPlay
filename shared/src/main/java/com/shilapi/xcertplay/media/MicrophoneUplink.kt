@@ -6,6 +6,7 @@ import android.media.MediaRecorder
 import android.os.Build
 import android.util.Log
 import com.shilapi.xcertplay.airplay.AudioCodecKind
+import com.shilapi.xcertplay.airplay.bindWildcardDatagram
 import com.shilapi.xcertplay.airplay.MicrophoneConfig
 import com.shilapi.xcertplay.airplay.MicrophoneCounters
 import com.shilapi.xcertplay.airplay.MicrophonePacketizer
@@ -105,10 +106,7 @@ internal class MicrophoneUplink(private val config: MicrophoneConfig) : Closeabl
         }
 
         val nextSocket = try {
-            DatagramSocket(null).apply {
-                reuseAddress = true
-                bind(InetSocketAddress(InetAddress.getByName("::"), 0))
-            }
+            bindWildcardDatagram("airplay microphone")
         } catch (error: Exception) {
             Log.e(TAG, "microphone socket creation failed", error)
             nextRecorder.release()

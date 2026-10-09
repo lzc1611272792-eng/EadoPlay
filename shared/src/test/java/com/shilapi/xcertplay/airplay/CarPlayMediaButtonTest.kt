@@ -12,19 +12,17 @@ class CarPlayMediaButtonTest {
     fun steeringWheelKeysMapToCarPlayMediaPresses() {
         assertEquals(CarPlayMediaButton.NEXT, CarPlayMediaButton.forKeyCode(KeyEvent.KEYCODE_MEDIA_NEXT))
         assertEquals(CarPlayMediaButton.PREVIOUS, CarPlayMediaButton.forKeyCode(KeyEvent.KEYCODE_MEDIA_PREVIOUS))
-        // BYD rewrites its play/pause key into PLAY or PAUSE from the session state; both toggle.
-        assertEquals(CarPlayMediaButton.PLAY_PAUSE, CarPlayMediaButton.forKeyCode(KeyEvent.KEYCODE_MEDIA_PLAY))
-        assertEquals(CarPlayMediaButton.PLAY_PAUSE, CarPlayMediaButton.forKeyCode(KeyEvent.KEYCODE_MEDIA_PAUSE))
+        assertEquals(CarPlayMediaButton.PLAY, CarPlayMediaButton.forKeyCode(KeyEvent.KEYCODE_MEDIA_PLAY))
+        assertEquals(CarPlayMediaButton.PAUSE, CarPlayMediaButton.forKeyCode(KeyEvent.KEYCODE_MEDIA_PAUSE))
         assertEquals(CarPlayMediaButton.PLAY_PAUSE, CarPlayMediaButton.forKeyCode(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE))
-        assertEquals(CarPlayMediaButton.PLAY_PAUSE, CarPlayMediaButton.forKeyCode(KeyEvent.KEYCODE_HEADSETHOOK))
-        assertEquals(CarPlayMediaButton.PLAY_PAUSE, CarPlayMediaButton.forKeyCode(353))
+        assertNull(CarPlayMediaButton.forKeyCode(KeyEvent.KEYCODE_HEADSETHOOK))
+        assertNull(CarPlayMediaButton.forKeyCode(353))
     }
 
     @Test
     fun theVoiceKeyOpensSiri() {
-        // Recorded on DiLink 5.0: short press 304 (scan 290), long press 312 (scan 312).
-        assertTrue(CarPlayMediaButton.opensSiri(304))
-        assertTrue(CarPlayMediaButton.opensSiri(312))
+        assertFalse(CarPlayMediaButton.opensSiri(304))
+        assertFalse(CarPlayMediaButton.opensSiri(312))
         assertTrue(CarPlayMediaButton.opensSiri(KeyEvent.KEYCODE_VOICE_ASSIST))
         assertFalse(CarPlayMediaButton.opensSiri(KeyEvent.KEYCODE_MEDIA_NEXT))
         assertNull(CarPlayMediaButton.forKeyCode(304))
@@ -42,5 +40,20 @@ class CarPlayMediaButtonTest {
         assertEquals(3, CarPlayMediaButton.PLAY_PAUSE)
         assertEquals(4, CarPlayMediaButton.NEXT)
         assertEquals(5, CarPlayMediaButton.PREVIOUS)
+    }
+
+    @Test
+    fun phoneKeysUseTheTelephonyHidReport() {
+        assertEquals(CarPlayTelephonyButton.HOOK_SWITCH, CarPlayTelephonyButton.forKeyCode(KeyEvent.KEYCODE_CALL))
+        assertEquals(CarPlayTelephonyButton.HOOK_SWITCH, CarPlayTelephonyButton.forKeyCode(KeyEvent.KEYCODE_HEADSETHOOK))
+        assertEquals(CarPlayTelephonyButton.DROP, CarPlayTelephonyButton.forKeyCode(KeyEvent.KEYCODE_ENDCALL))
+        assertNull(CarPlayTelephonyButton.forKeyCode(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE))
+    }
+
+    @Test
+    fun toggleUsesTheReportedIphoneState() {
+        assertEquals(CarPlayMediaButton.PAUSE, CarPlayMediaButton.toggleForPlaying(true))
+        assertEquals(CarPlayMediaButton.PLAY, CarPlayMediaButton.toggleForPlaying(false))
+        assertEquals(CarPlayMediaButton.PLAY_PAUSE, CarPlayMediaButton.toggleForPlaying(null))
     }
 }

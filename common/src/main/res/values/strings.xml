@@ -1,4 +1,4 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+﻿<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="built_in_car_hotspot">Built-in car hotspot</string>
     <string name="wifi_direct" tools:ignore="MissingTranslation">Wi-Fi Direct</string>
     <string name="hotspot_hint_manual">Built-in car hotspot · Keep the car hotspot, Bluetooth and your iPhone’s Wi-Fi on.</string>
@@ -18,10 +18,10 @@
     <string name="hotspot_details_saved">Details saved · Check that the car hotspot is on before connecting.</string>
     <string name="permission_enabled_ready">Permission enabled · ready to use</string>
     <string name="permission_not_enabled">Permission not enabled yet</string>
-    <string name="clipboard_usage_access">DiPlay Usage Access</string>
+    <string name="clipboard_usage_access">EadoPlay Usage Access</string>
     <string name="report_clip_label">Diagnostic report</string>
     <string name="share_diagnostic_report">Share diagnostic report</string>
-    <string name="setup_error_auth">CarPlay authentication could not be loaded. Install the complete DiPlay build over this app. No uninstall or hotspot change is needed.</string>
+    <string name="setup_error_auth">CarPlay authentication could not be loaded. Install the complete EadoPlay build over this app. No uninstall or hotspot change is needed.</string>
     <string name="hotspot_state_stopped">stopped</string>
     <string name="hotspot_state_off">off</string>
     <string name="hotspot_wireless_prefix">Wireless hotspot:\u0020</string>
@@ -64,7 +64,7 @@
     <string name="choose_iphone_prefix">Choose iPhone ·\u0020</string>
     <string name="audio_saved_value">Saved: %1$d</string>
     <string name="about_public_preview_prefix">Public preview ·\u0020</string>
-    <string name="msg_car_hotspot_connect">DiPlay connects through the car hotspot “%1$s”. Turn it on in the car settings, then connect.</string>
+    <string name="msg_car_hotspot_connect">EadoPlay connects through the car hotspot “%1$s”. Turn it on in the car settings, then connect.</string>
     <string name="edit_saved_hotspot_prefix">Edit saved hotspot ·\u0020</string>
     <string name="cluster_adb_multi_device">If ADB lists several devices, use adb -s &lt;car-device-ID&gt; shell appops set %1$s GET_USAGE_STATS allow. Find the ID with adb devices.</string>
     <string name="status_ready_for_prefix">Ready for\u0020</string>
@@ -74,25 +74,25 @@
     <string name="safe_area_prefix">Safe area:\u0020</string>
     <string name="settings_android9_compat">The following settings are unavailable and hidden on Android 9 (API 28):\n• Wi-Fi P2P (5 GHz) — LocalOnlyHotspot is used instead.\n• HEVC software decoder — hardware decoding is used instead.</string>
     <string name="settings_mfi_address_hint">Address must start with http:// or https://. Token is optional and sent as an Authorization bearer token.</string>
-    <string name="app_name" tools:ignore="MissingTranslation">DiPlay</string>
+    <string name="app_name" tools:ignore="MissingTranslation">EadoPlay</string>
     <string name="language_section_title">Language</string>
     <string name="language_app_language">App language</string>
     <string name="language_system_default">System default</string>
-    <string name="language_hint">Choose a language for DiPlay. System default follows the device language.</string>
+    <string name="language_hint">Choose a language for EadoPlay. System default follows the device language.</string>
     <string name="language_apply">Apply</string>
     <string name="common_cancel">Cancel</string>
     <string name="a_familiar_drive">A familiar drive.</string>
     <string name="a_previous_wi_fi_direct_connection_is_still_running_reset">A previous Wi-Fi Direct connection is still running. Reset it to connect.</string>
     <string name="about">About</string>
-    <string name="about_diplay">About DiPlay</string>
+    <string name="about_diplay">About EadoPlay</string>
     <string name="active">Active</string>
     <string name="advanced_audio_channel_mapping">Advanced audio channel mapping</string>
     <string name="airplay_icon">AirPlay icon</string>
     <string name="allow_carplay_ui_outside_the_safe_area">Allow CarPlay UI outside the safe area</string>
     <string name="allow_nearby_devices_and_on_older_android_versions_locatio">Allow Nearby devices and, on older Android versions, Location before resetting CarPlay Wi-Fi.</string>
-    <string name="allow_nearby_devices_for_diplay_in_the_head_unit_s_app_per">Allow Nearby devices for DiPlay in the head unit’s app permissions.</string>
-    <string name="allow_nearby_devices_so_diplay_can_connect_to_your_paired">Allow Nearby devices so DiPlay can connect to your paired iPhone.</string>
-    <string name="allow_precise_location_for_diplay_in_the_head_unit_s_app_p">Allow precise Location for DiPlay in the head unit’s app permissions.</string>
+    <string name="allow_nearby_devices_for_diplay_in_the_head_unit_s_app_per">Allow Nearby devices for EadoPlay in the head unit’s app permissions.</string>
+    <string name="allow_nearby_devices_so_diplay_can_connect_to_your_paired">Allow Nearby devices so EadoPlay can connect to your paired iPhone.</string>
+    <string name="allow_precise_location_for_diplay_in_the_head_unit_s_app_p">Allow precise Location for EadoPlay in the head unit’s app permissions.</string>
     <string name="allow_the_connection_permission_to_continue">Allow the connection permission to continue</string>
     <string name="an_independent_carplay_receiver_for_android_head_units_wir">An independent CarPlay receiver for Android head units. Wired and wireless connections run on the head unit, with local authentication. A standard iPhone can connect without a jailbreak, Mac, dongle or sign-in.\n\nThis preview uses an experimental accessory identity. Compatibility with every iPhone and head unit is still being tested. It is not an Apple-certified product.</string>
     <string name="android_9_compatibility">Android 9 compatibility</string>
@@ -110,10 +110,9 @@
     <string name="automatic_map_setup_adb">Automatic map setup · ADB</string>
     <string name="availability_depends_on_your_head_unit_s_startup_settings">Availability depends on your head unit’s startup settings.</string>
     <string name="back">Back</string>
-    <string name="back_to_diplay">Back to DiPlay</string>
+    <string name="back_to_diplay">Back to EadoPlay</string>
     <string name="band">Band</string>
     <string name="bluetooth_settings">Bluetooth settings</string>
-    <string name="byd_navigation">BYD navigation</string>
     <string name="cancel">Cancel</string>
     <string name="car_home">Car home</string>
     <string name="car_hotspot_details">Car hotspot details</string>
@@ -149,7 +148,7 @@
     <string name="cluster_map_size">Dashboard map size</string>
     <string name="connect">Connect</string>
     <string name="connect_phone">Connect phone</string>
-    <string name="connect_when_diplay_opens">Connect when DiPlay opens</string>
+    <string name="connect_when_diplay_opens">Connect when EadoPlay opens</string>
     <string name="connect_with_usb">Connect with USB</string>
     <string name="connect_your_iphone_with_a_usb_cable">Connect your iPhone with a USB cable</string>
     <string name="connecting_bluetooth">Connecting Bluetooth</string>
@@ -166,14 +165,14 @@
     <string name="could_not_reset_wi_fi_direct_close_the_other_projection_ap">Could not reset Wi-Fi Direct. Close the other projection app and try again.</string>
     <string name="could_not_save_image">Could not save image</string>
     <string name="could_not_save_the_report">Could not save the report</string>
-    <string name="could_not_start_carplay_return_to_diplay_and_check_app_per">Could not start CarPlay. Return to DiPlay and check app permissions.</string>
+    <string name="could_not_start_carplay_return_to_diplay_and_check_app_per">Could not start CarPlay. Return to EadoPlay and check app permissions.</string>
     <string name="custom_1_1_icon">Custom 1:1 icon</string>
     <string name="debug_logs">Debug logs</string>
     <string name="default_icon">Default icon</string>
     <string name="default_placeholder_icon">Default placeholder icon</string>
     <string name="diagnostic_report_saved">Diagnostic report saved</string>
     <string name="diagnostics">Diagnostics</string>
-    <string name="diplay" tools:ignore="MissingTranslation">DiPlay</string>
+    <string name="diplay" tools:ignore="MissingTranslation">EadoPlay</string>
     <string name="discard_changes_and_exit_settings">Discard changes and exit settings</string>
     <string name="disconnect">Disconnect</string>
     <string name="discovering_iphone">Discovering iPhone</string>
@@ -218,7 +217,7 @@
     <string name="i2c_device_path_is_required">I2C device path is required</string>
     <string name="identity_appearance">Identity &amp; appearance</string>
     <string name="image_is_not_ready">Image is not ready</string>
-    <string name="in_carplay_swipe_down_with_three_fingers_to_open_diplay_se">In CarPlay, swipe down with three fingers to open DiPlay settings.</string>
+    <string name="in_carplay_swipe_down_with_three_fingers_to_open_diplay_se">In CarPlay, swipe down with three fingers to open EadoPlay settings.</string>
     <string name="instrument_contrast">Instrument contrast</string>
     <string name="instrument_theme">Instrument theme</string>
     <string name="keep_bluetooth_and_wi_fi_on_your_iphone_pair_with_the_car">Keep Bluetooth and Wi-Fi on your iPhone. Pair with the car’s Bluetooth, then select your iPhone here. Allow Nearby devices when asked.</string>
@@ -233,7 +232,7 @@
     <string name="longest_height">Longest height</string>
     <string name="looking_for_your_paired_iphone">Looking for your paired iPhone…</string>
     <string name="made_possible_by_open_source">Made possible by open source</string>
-    <string name="make_diplay_feel_right_for_your_car">Make DiPlay feel right for your car.</string>
+    <string name="make_diplay_feel_right_for_your_car">Make EadoPlay feel right for your car.</string>
     <string name="manual_hotspot">Manual hotspot</string>
     <string name="manual_mode_match_the_cluster_theme_here_the_map_cannot_fo">Manual mode: match the cluster theme here. The map cannot follow card visibility without Usage Access.</string>
     <string name="manufacturer">Manufacturer</string>
@@ -242,13 +241,12 @@
     <string name="model">Model</string>
     <string name="music_buffer">Music buffer</string>
     <string name="resolution_native">Native</string>
-    <string name="navigation_on_hud_and_instrument_cluster">Navigation on HUD and dashboard</string>
     <string name="navigation_stream_type">Navigation stream type</string>
     <string name="nearby_devices">Nearby devices</string>
     <string name="nearby_devices_connects_your_iphone_microphone_enables_sir">Nearby devices connects your iPhone. Microphone enables Siri and calls. Older Android versions also require Location for wireless setup. USB mode may ask for a local VPN connection.</string>
     <string name="nothing_is_sent_automatically_protocol_payloads_and_creden">Nothing is sent automatically. Protocol payloads and credentials are excluded.</string>
     <string name="oem_label">OEM label</string>
-    <string name="on_your_iphone_open_settings_bluetooth_and_pair_with_the_c">On your iPhone, open Settings → Bluetooth and pair with the car. Then return to DiPlay and choose Connect phone.</string>
+    <string name="on_your_iphone_open_settings_bluetooth_and_pair_with_the_c">On your iPhone, open Settings → Bluetooth and pair with the car. Then return to EadoPlay and choose Connect phone.</string>
     <string name="one_time_setup_on_this_car">One-time setup on this car</string>
     <string name="open">Open</string>
     <string name="open_after_the_car_starts">Open after the car starts</string>
@@ -276,7 +274,7 @@
     <string name="preparing_mfi_authentication">Preparing MFi authentication</string>
     <string name="ready">Ready</string>
     <string name="ready_when_you_are">Ready when you are</string>
-    <string name="receiver_based_on_xcertplay_licensed_under_gpl_3_0_diplay">Receiver based on xcertplay, licensed under GPL-3.0. DiPlay’s interface follows DiAuto’s design, licensed under AGPL-3.0.\n\nIncludes AndroidX, Bouncy Castle, JmDNS and SLF4J. Source and license notices accompany this release.\n\nCarPlay and the CarPlay icon belong to Apple Inc. DiPlay is an independent project.</string>
+    <string name="receiver_based_on_xcertplay_licensed_under_gpl_3_0_diplay">Receiver based on xcertplay, licensed under GPL-3.0. EadoPlay’s interface follows DiAuto’s design, licensed under AGPL-3.0.\n\nIncludes AndroidX, Bouncy Castle, JmDNS and SLF4J. Source and license notices accompany this release.\n\nCarPlay and the CarPlay icon belong to Apple Inc. EadoPlay is an independent project.</string>
     <string name="reconnecting_to_your_iphone">Reconnecting to your iPhone…</string>
     <string name="remote">Remote</string>
     <string name="remote_server_address_contains_u_0000">Remote server address contains U+0000</string>
@@ -286,7 +284,7 @@
     <string name="report_android_location_to_the_iphone">Report Android location to the iPhone</string>
     <string name="report_location_to_iphone">Report location to iPhone</string>
     <string name="report_saved_open_it_from_your_file_manager_to_share_it">Report saved. Open it from your file manager to share it.</string>
-    <string name="reports_save_to_downloads_diplay">Reports save to Downloads/DiPlay.\u0020</string>
+    <string name="reports_save_to_downloads_diplay">Reports save to Downloads/EadoPlay.\u0020</string>
     <string name="requesting_iphone_usb_permission">Requesting iPhone USB permission</string>
     <string name="requesting_mfi_usb_permission">Requesting MFi USB permission</string>
     <string name="reset">Reset</string>
@@ -295,7 +293,7 @@
     <string name="reset_carplay_wi_fi">Reset CarPlay Wi-Fi</string>
     <string name="reset_carplay_wi_fi_2">Reset CarPlay Wi-Fi?</string>
     <string name="resolution">Resolution</string>
-    <string name="return_from_car_settings_to_diplay_then_connect_accept_the">Return from car settings to DiPlay, then connect. Accept the CarPlay prompt on your iPhone. A car internet plan is not required; mobile data availability depends on your phone’s network settings.</string>
+    <string name="return_from_car_settings_to_diplay_then_connect_accept_the">Return from car settings to EadoPlay, then connect. Accept the CarPlay prompt on your iPhone. A car internet plan is not required; mobile data availability depends on your phone’s network settings.</string>
     <string name="review_app_permissions">Review app permissions</string>
     <string name="right_hand_drive">Right-hand drive</string>
     <string name="running">Running</string>
@@ -304,7 +302,7 @@
     <string name="s_1_0x" tools:ignore="MissingTranslation">1.0x</string>
     <string name="s_1_choose_your_connection">1 · Choose your connection</string>
     <string name="s_1_connect_a_computer_with_adb_installed_to_the_car_using">1. Connect a computer with ADB installed to the car using your existing USB or wireless debugging connection. Approve debugging on the car if asked.\n\n2. Run this command in the computer’s terminal:</string>
-    <string name="s_1_open_car_hotspot_settings_turn_the_hotspot_on_and_sele">1. Open car hotspot settings, turn the hotspot on and select 5 GHz if available.\n2. Copy its name and password below exactly.\n3. Leave the car hotspot on when connecting. DiPlay sends the details over Bluetooth; your iPhone joins automatically.</string>
+    <string name="s_1_open_car_hotspot_settings_turn_the_hotspot_on_and_sele">1. Open car hotspot settings, turn the hotspot on and select 5 GHz if available.\n2. Copy its name and password below exactly.\n3. Leave the car hotspot on when connecting. EadoPlay sends the details over Bluetooth; your iPhone joins automatically.</string>
     <string name="s_2_4_ghz" tools:ignore="MissingTranslation">2.4 GHz</string>
     <string name="s_2_pair_your_iphone">2 · Pair your iPhone</string>
     <string name="s_300_ms_default">300 ms · default</string>
@@ -319,6 +317,8 @@
     <string name="safe_area">Safe area</string>
     <string name="safe_area_waiting_for_activity_size">Safe area: waiting for activity size</string>
     <string name="save">Save</string>
+    <string name="setting_enabled">Enabled</string>
+    <string name="setting_disabled">Disabled</string>
     <string name="save_1_1">Save 1:1</string>
     <string name="save_and_reconnect">Save and reconnect</string>
     <string name="save_details">Save details</string>
@@ -339,7 +339,6 @@
     <string name="share">Share</string>
     <string name="show_on_screen_debug_logs">Show on-screen debug logs</string>
     <string name="show_password">Show password</string>
-    <string name="show_phone_navigation_arrows_distance_and_street_names_on">Show phone navigation arrows, distance and street names on supported BYD displays. Vehicle compatibility varies.</string>
     <string name="show_the_side_map_only_when_its_card_is_open_and_switch_to">Show the side map only when its card is open, and switch to the full map in Map theme. Theme and card changes keep CarPlay connected.</string>
     <string name="shows_the_iphone_s_cluster_map_on_the_instrument_cluster_c">Shows the iPhone\'s map on the dashboard. Choose Small or Full screen navi in the dashboard\'s steering-wheel menu.</string>
     <string name="start_carplay_automatically_after_device_boot">Start CarPlay automatically after device boot</string>
@@ -348,7 +347,10 @@
     <string name="starting_wireless_hotspot">Starting wireless hotspot</string>
     <string name="startup">Startup</string>
     <string name="still_waiting_for_usage_access_check_that_the_command_ran">Still waiting for Usage Access. Check that the command ran successfully for this car, then try again.</string>
-    <string name="tap_a_number_to_test_14_driver_speaker_on_byd">Tap a number to test. 14 = driver speaker on BYD.</string>
+    <string name="tap_a_number_to_test_vehicle_speakers">Tap a number to test the vehicle speakers.</string>
+    <string name="video_renderer">Video renderer</string>
+    <string name="renderer_surface_view">SurfaceView · smoother on older head units</string>
+    <string name="renderer_texture_view">TextureView · compatibility mode</string>
     <string name="the_head_unit_couldn_t_start_carplay_wi_fi_check_wi_fi_and">The head unit couldn’t start CarPlay Wi-Fi. Check Wi-Fi and close other projection apps. Retrying…</string>
     <string name="this_ends_the_existing_wi_fi_direct_connection_including_o">This ends the existing Wi-Fi Direct connection, including one left behind after reinstalling. Close other projection apps first. Your car’s internet Wi-Fi stays on.</string>
     <string name="this_head_unit_cannot_use_the_smaller_size_at_this_resolut">This head unit cannot use the smaller size at this resolution. Using Default.</string>
@@ -362,7 +364,6 @@
     <string name="turn_on_wi_fi_in_the_head_unit_s_settings_to_connect">Turn on Wi-Fi in the head unit’s settings to connect.</string>
     <string name="turn_the_car_s_wi_fi_switch_on_allow_location_nearby_devic">Turn the car’s Wi-Fi switch on. Allow Location / Nearby devices if requested and enable Location when Android asks. If playback stutters, try the built-in car hotspot at 5 GHz.</string>
     <string name="usage_access_enabled">Usage Access: enabled</string>
-    <string name="usage_access_lets_diplay_follow_the_instrument_theme_and_m">Usage Access lets DiPlay follow the instrument theme and map card. Only BYD cluster activity events are processed locally. This car does not provide a working permission settings page.</string>
     <string name="usage_access_setup_needed_for_automatic_mode">Usage Access: setup needed for automatic mode</string>
     <string name="usb_ch341">USB/CH341</string>
     <string name="use_a_usb_data_cable_and_the_car_s_usb_data_port_unlock_yo">Use a USB data cable and the car’s USB data port. Unlock your iPhone and allow CarPlay. No hotspot setup is needed.</string>
@@ -372,6 +373,12 @@
     <string name="use_usage_content_type_routing_instead_of_stream_type">Use usage / content-type routing instead of stream type</string>
     <string name="use_your_last_connection_type_and_selected_iphone">Use your last connection type and selected iPhone.</string>
     <string name="vpn_consent_was_denied">VPN consent was denied</string>
+    <string name="retry_connection_permission">Allow local USB connection</string>
+    <string name="connection_steps">Connection steps and errors</string>
+    <string name="status_hotspot_ready_safe">Hotspot ready: %1$s, %2$s, %3$s, channel %4$s</string>
+    <string name="bonjour_startup_failed">Bonjour/mDNS could not start; see the connection steps</string>
+    <string name="bonjour_skipped_continuing_bluetooth">Bonjour/mDNS is unavailable. Trying the Bluetooth connection and direct AirPlay address; CarPlay is not connected yet.</string>
+    <string name="address_in_use_check_connection_steps">A connection address is busy; see the connection steps</string>
     <string name="waiting_for_iphone_over_usb">Waiting for iPhone over USB</string>
     <string name="waiting_for_mfi_coprocessor">Waiting for MFi coprocessor</string>
     <string name="waiting_for_paired_iphone">Waiting for paired iPhone</string>
@@ -384,6 +391,8 @@
     <string name="wireless_carplay_2">Wireless CarPlay</string>
     <string name="wireless_carplay_active">Wireless CarPlay active</string>
     <string name="wireless_carplay_control_running">Wireless CarPlay control running</string>
+    <string name="wireless_compatibility_mode">Compatibility mode: a video frame appeared and Bluetooth control remains connected; the Wi-Fi iAP2 tunnel is not ready.</string>
+    <string name="wireless_compatibility_mode_short">Compatibility mode</string>
     <string name="wireless_carplay_transport">Wireless CarPlay transport</string>
     <string name="wireless_connection_help">Wireless connection help</string>
     <string name="wireless_hotspot_off">Wireless hotspot: off</string>
@@ -397,7 +406,7 @@
     <string name="your_maps_music_and_conversations_carplay_right_here_on_yo">Your maps, music and conversations.\nCarPlay, right here on your car display.</string>
     <string name="your_phone_your_drive">YOUR PHONE. YOUR DRIVE.</string>
     <string name="your_report_was_saved_to_the_selected_location">Your report was saved to the selected location.</string>
-    <string name="cluster_waiting_for_map">DiPlay · waiting for the CarPlay map</string>
+    <string name="cluster_waiting_for_map">EadoPlay · waiting for the CarPlay map</string>
     <string name="option_size_large">Large</string>
     <string name="option_size_medium">Medium</string>
     <string name="option_size_small">Small</string>
@@ -420,24 +429,24 @@
     <string name="turn_card_vertical">Turn card · vertical</string>
     <string name="reset_turn_card_to_centre">Reset turn card to centre</string>
     <string name="dashboard_map_only_in_small_and_full_navi">Dashboard map only in Small and Full navi · needs ADB</string>
-    <string name="dashboard_map_only_in_small_and_full_navi_description">DiPlay reads the navi mode you pick on the steering wheel. In Off and Turn on by navi the dashboard shows arrows only, so the iPhone does not send the map; in Small and Full screen navi it does, within a second or two of the switch. Needs ADB over network on the head unit.</string>
+    <string name="dashboard_map_only_in_small_and_full_navi_description">EadoPlay reads the navi mode you pick on the steering wheel. In Off and Turn on by navi the dashboard shows arrows only, so the iPhone does not send the map; in Small and Full screen navi it does, within a second or two of the switch. Needs ADB over network on the head unit.</string>
     <string name="check_adb_access">Check ADB access</string>
     <string name="adb_checking">Checking ADB access…</string>
-    <string name="adb_checking_may_ask">Checking ADB access… If the car asks, allow DiPlay and tick “Always allow”.</string>
+    <string name="adb_checking_may_ask">Checking ADB access… If the car asks, allow EadoPlay and tick “Always allow”.</string>
     <string name="adb_check_failed">The ADB check failed. Try again.</string>
     <string name="adb_access_ready">ADB access ready.</string>
     <string name="adb_dashboard_sends_map">Dashboard: %1$s, so the iPhone sends the map.</string>
     <string name="adb_dashboard_does_not_send_map">Dashboard: %1$s, so the iPhone does not send the map.</string>
-    <string name="adb_not_approved">DiPlay is not approved yet. Tap Check ADB access, then allow DiPlay on the car screen.</string>
+    <string name="adb_not_approved">EadoPlay is not approved yet. Tap Check ADB access, then allow EadoPlay on the car screen.</string>
     <string name="adb_off">ADB over network is off. Turn it on in the head unit’s developer options.</string>
-    <string name="adb_pairing_only">This head unit offers only wireless debugging with pairing, which DiPlay does not support yet.</string>
+    <string name="adb_pairing_only">This head unit offers only wireless debugging with pairing, which EadoPlay does not support yet.</string>
     <string name="navi_mode_off">Off</string>
     <string name="navi_mode_turn_on_by_navi">Turn on by navi</string>
     <string name="navi_mode_small">Small screen navi</string>
     <string name="navi_mode_full">Full screen navi</string>
     <string name="navi_mode_unknown">unknown mode</string>
     <string name="car_battery_for_the_iphone">Car battery for the iPhone · needs ADB</string>
-    <string name="car_battery_for_the_iphone_description">DiPlay tells the iPhone the car\'s charge and range, so Apple Maps can warn about a low charge and suggest chargers on the way. The iPhone is told about an electric car only while DiPlay can read the battery. Reconnects CarPlay. Needs ADB over network on the head unit.</string>
+    <string name="car_battery_for_the_iphone_description">EadoPlay tells the iPhone the car\'s charge and range, so Apple Maps can warn about a low charge and suggest chargers on the way. The iPhone is told about an electric car only while EadoPlay can read the battery. Reconnects CarPlay. Needs ADB over network on the head unit.</string>
     <string name="charging_connectors">Charging connectors</string>
     <string name="connectors_ccs2_type2">CCS2 and Type 2 · Europe</string>
     <string name="connectors_gb_t">GB/T · China</string>
@@ -448,4 +457,17 @@
     <string name="adb_battery_reading">Battery: %1$d %%, %2$d km.</string>
     <string name="adb_battery_unreadable">The battery cannot be read on this car, so the iPhone is not told about an electric car.</string>
     <string name="adb_battery_reconnect">If CarPlay connected before the battery was ready, use Apply and reconnect to enable battery reporting.</string>
+    <string name="settings_nav_overview">Overview</string>
+    <string name="settings_nav_connection">Connection</string>
+    <string name="settings_nav_display">Display</string>
+    <string name="settings_nav_audio">Audio</string>
+    <string name="settings_nav_diagnostics">Diagnostics</string>
+    <string name="settings_nav_advanced">Advanced</string>
+    <string name="settings_overview_desc">Basic settings for comfortable, reliable driving.</string>
+    <string name="settings_overview_iphone_title">Choose your iPhone</string>
+    <string name="settings_overview_iphone_desc">Wireless CarPlay requires pairing an iPhone first.</string>
+    <string name="settings_overview_your_settings">Your settings</string>
+    <string name="settings_overview_quick_conn_desc">Phone, wireless, wired and auto-connect</string>
+    <string name="settings_overview_quick_disp_desc">Appearance, fullscreen, resolution and fps</string>
+    <string name="settings_overview_quick_audio_desc">Music buffer and navigation stream routing</string>
 </resources>

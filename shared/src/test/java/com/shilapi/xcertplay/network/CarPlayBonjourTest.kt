@@ -5,9 +5,20 @@ import com.shilapi.xcertplay.airplay.AirPlayDisplayConfig
 import com.shilapi.xcertplay.airplay.AirPlayIdentity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CarPlayBonjourTest {
+    @Test fun recognizesOldAndroidMdnsBindCollision() {
+        assertTrue(isMdnsBindCollision(java.io.IOException("bind failed: EADDRINUSE (Address already in use)")))
+        assertFalse(isMdnsBindCollision(java.io.IOException("Network is unreachable")))
+    }
+    @Test fun systemDiscoveryFailureKeepsTheUsefulErrorCode() {
+        assertEquals(
+            "system NSD AirPlay publication failed code=3",
+            CarPlayBonjourEvent.SystemDiscovery("AirPlay publication", false, 3).diagnosticSummary(),
+        )
+    }
     @Test fun discoveryDiagnosticsKeepOutcomeWithoutPhoneIdentifiers() {
         val endpoint = CarPlayBonjourEndpoint("Private phone", "192.168.43.25", 7000, "AA:BB:CC:DD:EE:FF")
         assertEquals("control resolved family=IPv4 port=7000", CarPlayBonjourEvent.Resolved(endpoint).diagnosticSummary())

@@ -21,6 +21,7 @@ interface MediaSink {
     fun onAudioStarted(type: Int, format: AudioFormat, firstSample: Int) {}
     fun onAudioRtp(type: Int, format: AudioFormat, rtp: ByteArray, sample: Int) {}
     fun onAudioStopped(type: Int) {}
+    fun onAudioDucking(volumeDb: Double, durationMs: Int) {}
     fun onMicrophoneStarted(type: Int, config: MicrophoneConfig) {}
     fun onMicrophoneStopped(type: Int) {}
     fun onIapMessage(bytes: ByteArray) {}
@@ -64,6 +65,10 @@ class CarPlayMediaEngine(
 
     override fun setIapTunnelHandler(handler: ((BlockingDuplexByteStream) -> Boolean)?) {
         iapTunnelHandler = handler
+    }
+
+    override fun onAudioDucking(volumeDb: Double, durationMs: Int) {
+        sink.onAudioDucking(volumeDb, durationMs)
     }
 
     override fun onScreen(session: AirPlaySession, type: Int, stream: Map<String, Any?>): Int? {

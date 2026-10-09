@@ -3,8 +3,6 @@ package com.shilapi.xcertplay.airplay
 import android.util.Log
 import java.io.Closeable
 import java.io.InputStream
-import java.net.InetAddress
-import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.util.concurrent.atomic.AtomicBoolean
@@ -37,9 +35,7 @@ class ScreenStream(private val key: ByteArray, private val onDiagnostic: (String
 
     fun listen(listener: Listener): Int {
         this.listener = listener
-        val bound = ServerSocket()
-        bound.reuseAddress = true
-        bound.bind(InetSocketAddress(InetAddress.getByName("::"), 0))
+        val bound = bindWildcardServer("airplay video")
         server = bound
         thread = Thread({ accept(bound) }, "airplay-screen").apply { isDaemon = true; start() }
         return bound.localPort

@@ -40,6 +40,6 @@ internal class SessionLogFile(val file: File) : Closeable {
     companion object {
         const val MAX_BYTES = 512 * 1024L
         private val ARCHIVE_NAMES = listOf("previous.log") + (2..7).map { "previous-$it.log" }
-        val REPORT_NAMES = ARCHIVE_NAMES.reversed() + "diplay.log"
+        val REPORT_NAMES = ARCHIVE_NAMES.reversed() + "eadoplay.log"
     }
 }

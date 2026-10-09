@@ -39,7 +39,7 @@ class DiPlaySessionService : Service() {
         }
         builder
             .setSmallIcon(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) R.drawable.ic_diplay_notification else R.drawable.ic_carplay)
-            .setContentTitle("DiPlay")
+            .setContentTitle("EadoPlay")
             .setContentText("CarPlay connection running")
             .setContentIntent(open).setOngoing(true)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -59,13 +59,11 @@ class DiPlaySessionService : Service() {
         return START_NOT_STICKY
     }
     override fun onTaskRemoved(rootIntent: Intent?) {
-        // BYD's recents force-stops the package ~10 ms after removing the task: end guidance first.
-        com.shilapi.xcertplay.hud.BydNavigationOutputs.endNow()
         CarPlayBackgroundSession.stop()
         stopSelf()
     }
     companion object {
-        const val ACTION_STOP = "com.shihab.diplay.DISCONNECT"
-        private const val CHANNEL = "diplay_connection"
+        const val ACTION_STOP = "com.eadoplay.carplay.DISCONNECT"
+        private const val CHANNEL = "eadoplay_connection"
     }
 }

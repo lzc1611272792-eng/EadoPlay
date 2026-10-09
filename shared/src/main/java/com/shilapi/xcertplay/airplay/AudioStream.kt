@@ -171,10 +171,7 @@ class AudioStream(
     }
 
     private fun bindAnyPort(): DatagramSocket {
-        val socket = DatagramSocket(null)
-        socket.reuseAddress = true
-        socket.bind(InetSocketAddress(InetAddress.getByName("::"), 0))
-        return socket
+        return bindWildcardDatagram("airplay audio")
     }
 
     private fun readU32Be(source: ByteArray, offset: Int): Int =

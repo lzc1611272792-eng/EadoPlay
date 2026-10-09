@@ -11,7 +11,8 @@ import java.io.Closeable
  * microphone uplink.
  */
 internal class OpusEncoder(bitrate: Int) : Closeable {
-    private val codec: MediaCodec? = try {
+    private val nativeEncoder = NativeOpusEncoder.create(bitrate)
+    private val codec: MediaCodec? = if (nativeEncoder != null) null else try {
         val format = MediaFormat.createAudioFormat(
             MediaFormat.MIMETYPE_AUDIO_OPUS,
             SAMPLE_RATE,
@@ -39,12 +40,15 @@ internal class OpusEncoder(bitrate: Int) : Closeable {
     private var closed = false
     private var outputPackets = 0
 
-    val available: Boolean get() = codec != null && !closed
+    val available: Boolean get() = (nativeEncoder != null || codec != null) && !closed
 
     /**
      * Queues one 20 ms PCM frame and returns all Opus access units made available by the codec.
      */
     fun encode(pcm: ByteArray): List<ByteArray> {
+        nativeEncoder?.let { encoder ->
+            return encoder.encode(pcm)?.let(::listOf).orEmpty()
+        }
         val codec = codec ?: return emptyList()
         if (closed) return emptyList()
         val inputIndex = try {
@@ -127,6 +131,7 @@ internal class OpusEncoder(bitrate: Int) : Closeable {
     override fun close() {
         if (closed) return
         closed = true
+        nativeEncoder?.close()
         val codec = codec ?: return
         try {
             codec.stop()

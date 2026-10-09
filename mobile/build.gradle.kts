@@ -13,11 +13,11 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.shihab.diplay"
+        applicationId = "com.eadoplay.carplay"
         minSdk = 19
         targetSdk = 37
         multiDexEnabled = true
-        versionCode = 26
+        versionCode = 27
         versionName = "0.2.7"
 
     }
@@ -39,8 +39,7 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix = ".hudtest"
-            versionNameSuffix = "-hud-test"
+            versionNameSuffix = "-4.4-eado-r17"
         }
         release {
             optimization {

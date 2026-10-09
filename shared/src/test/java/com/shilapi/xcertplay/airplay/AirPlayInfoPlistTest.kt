@@ -214,6 +214,31 @@ class AirPlayInfoPlistTest {
     }
 
     @Test
+    fun opusIsNotAdvertisedWhenTheHostCannotDecodeOrEncodeIt() {
+        val config = AirPlayConfig(
+            deviceName = "test",
+            deviceId = "02:00:00:00:00:02",
+            btMac = "02:00:00:00:00:02",
+            sourceVersion = "366.0",
+            main = AirPlayDisplayConfig(widthPixels = 1280, heightPixels = 720),
+            microphone = true,
+            opusDecodeSupported = false,
+            opusEncodeSupported = false,
+        )
+        val formats = (AirPlayInfoPlist.build(config)["audioFormats"] as List<*>)
+            .map { it as Map<*, *> }
+
+        formats.forEach { format ->
+            val output = format["audioOutputFormats"] as Int
+            val input = format["audioInputFormats"] as? Int
+            assertEquals(0, output and 0x70000000)
+            if (input != null) assertEquals(0, input and 0x70000000)
+        }
+        assertTrue(formats.any { (it["audioOutputFormats"] as Int) and 0x3fc != 0 })
+        assertTrue(formats.any { it["audioOutputFormats"] == 0x800000 })
+    }
+
+    @Test
     fun mainAltAndHighAudioStreamsAreDeclared() {
         val info = AirPlayInfoPlist.build(
             AirPlayConfig(

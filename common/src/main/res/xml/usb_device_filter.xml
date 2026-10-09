@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Apple mobile devices. Matching the vendor lets the app wake for current iPhone PIDs. -->
+    <usb-device vendor-id="1452" />
     <!-- CH341 USB\VID_1A86&PID_5512&REV_0304 -->
     <usb-device vendor-id="6790" product-id="21778" />
 </resources>

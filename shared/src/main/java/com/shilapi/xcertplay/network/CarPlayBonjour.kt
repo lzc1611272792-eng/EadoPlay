@@ -37,6 +37,7 @@ data class CarPlayBonjourEndpoint(
 )
 
 sealed interface CarPlayBonjourEvent {
+    data class SystemDiscovery(val operation: String, val success: Boolean, val errorCode: Int = 0) : CarPlayBonjourEvent
     data class Discovery(val stage: Stage, val ipv4Count: Int = 0, val ipv6Count: Int = 0) : CarPlayBonjourEvent {
         enum class Stage { ADDED, NO_MATCHING_ADDRESS, INVALID_PORT }
     }
@@ -52,6 +53,8 @@ sealed interface CarPlayBonjourEvent {
 
 /** Saved reports need discovery outcomes without phone names, addresses, or pairing identifiers. */
 fun CarPlayBonjourEvent.diagnosticSummary(): String = when (this) {
+    is CarPlayBonjourEvent.SystemDiscovery ->
+        "system NSD $operation ${if (success) "ready" else "failed code=$errorCode"}"
     is CarPlayBonjourEvent.Discovery -> "control discovery stage=$stage ipv4=$ipv4Count ipv6=$ipv6Count"
     is CarPlayBonjourEvent.Resolved ->
         "control resolved family=${if (':' in endpoint.host) "IPv6" else "IPv4"} port=${endpoint.port}"
@@ -131,6 +134,7 @@ class CarPlayBonjour(
     private val services = LinkedBlockingQueue<NsdServiceInfo>()
     private val interfaceServices = LinkedBlockingQueue<Pair<CarPlayBonjourEndpoint, InetAddress>>()
     private val discoveryEvents = LinkedBlockingQueue<CarPlayBonjourEvent.Discovery>(32)
+    private val systemEvents = LinkedBlockingQueue<CarPlayBonjourEvent.SystemDiscovery>(32)
     private val seenServices = ConcurrentHashMap.newKeySet<String>()
     private val lifecycleLock = Any()
     private val localAdvertisedAddress = advertisedHostAddress()
@@ -148,6 +152,11 @@ class CarPlayBonjour(
     @Volatile
     private var activeSocket: Socket? = null
     private var interfaceMdns: JmDNS? = null
+    private var interfaceMdnsActive = false
+    var backend: String = "not-started"
+        private set
+    var startupFallback: String? = null
+        private set
 
     private val interfaceListener = object : ServiceListener {
         override fun serviceAdded(event: ServiceEvent) {
@@ -186,10 +195,13 @@ class CarPlayBonjour(
     }
 
     private val registrationListener = object : NsdManager.RegistrationListener {
-        override fun onServiceRegistered(serviceInfo: NsdServiceInfo) = Unit
+        override fun onServiceRegistered(serviceInfo: NsdServiceInfo) {
+            systemEvents.offer(CarPlayBonjourEvent.SystemDiscovery("AirPlay publication", true))
+        }
 
         override fun onRegistrationFailed(serviceInfo: NsdServiceInfo, errorCode: Int) {
             Log.w(TAG, "AirPlay NSD registration failed code=$errorCode")
+            systemEvents.offer(CarPlayBonjourEvent.SystemDiscovery("AirPlay publication", false, errorCode))
         }
 
         override fun onServiceUnregistered(serviceInfo: NsdServiceInfo) = Unit
@@ -202,13 +214,16 @@ class CarPlayBonjour(
     private val discoveryListener = object : NsdManager.DiscoveryListener {
         override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
             Log.w(TAG, "CarPlay control discovery failed code=$errorCode")
+            systemEvents.offer(CarPlayBonjourEvent.SystemDiscovery("iPhone discovery", false, errorCode))
         }
 
         override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {
             Log.w(TAG, "CarPlay control discovery stop failed code=$errorCode")
         }
 
-        override fun onDiscoveryStarted(serviceType: String) = Unit
+        override fun onDiscoveryStarted(serviceType: String) {
+            systemEvents.offer(CarPlayBonjourEvent.SystemDiscovery("iPhone discovery", true))
+        }
 
         override fun onDiscoveryStopped(serviceType: String) = Unit
 
@@ -240,22 +255,31 @@ class CarPlayBonjour(
                     val address = requireNotNull(localAdvertisedAddress) {
                         "Interface mDNS requires a local advertised address"
                     }
-                    val dns = JmDNS.create(address, "carplay-${config.deviceId.replace(":", "")}")
-                    interfaceMdns = dns
-                    dns.addServiceListener("$CARPLAY_CONTROL_SERVICE_TYPE.local.", interfaceListener)
-                    dns.registerService(ServiceInfo.create(
-                        "$AIRPLAY_SERVICE_TYPE.local.", config.deviceName, config.port,
-                        0, 0, CarPlayBonjourProtocol.airPlayTxtRecords(config, identity),
-                    ))
+                    try {
+                        val dns = JmDNS.create(address, "carplay-${config.deviceId.replace(":", "")}")
+                        interfaceMdns = dns
+                        dns.addServiceListener("$CARPLAY_CONTROL_SERVICE_TYPE.local.", interfaceListener)
+                        dns.registerService(ServiceInfo.create(
+                            "$AIRPLAY_SERVICE_TYPE.local.", config.deviceName, config.port,
+                            0, 0, CarPlayBonjourProtocol.airPlayTxtRecords(config, identity),
+                        ))
+                        interfaceMdnsActive = true
+                        backend = "interface-mDNS"
+                    } catch (error: Exception) {
+                        runCatching { interfaceMdns?.close() }
+                        interfaceMdns = null
+                        // API 19 NSD cannot publish AirPlay TXT records. Let the caller continue
+                        // Bluetooth bootstrap without Bonjour instead of advertising an incomplete service.
+                        if (!isMdnsBindCollision(error) || Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+                            throw error
+                        }
+                        startupFallback = "mDNS port bind was busy; trying Android system NSD"
+                        startSystemNsd()
+                        backend = "system-NSD-fallback"
+                    }
                 } else {
-                    registerAirPlay()
-                    registrationRequested = true
-                    nsdManager.discoverServices(
-                        CARPLAY_CONTROL_SERVICE_TYPE,
-                        NsdManager.PROTOCOL_DNS_SD,
-                        discoveryListener,
-                    )
-                    discoveryRequested = true
+                    startSystemNsd()
+                    backend = "system-NSD"
                 }
                 worker = Thread(::runWorker, WORKER_NAME).apply {
                     isDaemon = true
@@ -281,6 +305,17 @@ class CarPlayBonjour(
         }
     }
 
+    private fun startSystemNsd() {
+        registerAirPlay()
+        registrationRequested = true
+        nsdManager.discoverServices(
+            CARPLAY_CONTROL_SERVICE_TYPE,
+            NsdManager.PROTOCOL_DNS_SD,
+            discoveryListener,
+        )
+        discoveryRequested = true
+    }
+
     override fun close() {
         val workerToJoin: Thread?
         val dnsToClose: JmDNS?
@@ -300,6 +335,7 @@ class CarPlayBonjour(
             services.clear()
             interfaceServices.clear()
             discoveryEvents.clear()
+            systemEvents.clear()
             dnsToClose = interfaceMdns
             interfaceMdns = null
             workerToJoin = worker
@@ -349,7 +385,8 @@ class CarPlayBonjour(
 
     private fun runWorker() {
         while (!closed) {
-            if (useInterfaceMdns) {
+            while (true) emit(systemEvents.poll() ?: break)
+            if (interfaceMdnsActive) {
                 try {
                     while (true) emit(discoveryEvents.poll() ?: break)
                     val (endpoint, address) = interfaceServices.poll(
@@ -582,4 +619,18 @@ class CarPlayBonjour(
         const val JOIN_TIMEOUT_MILLIS = 2_000L
         const val FAILURE_NONE = -1
     }
+}
+
+internal fun isMdnsBindCollision(error: Throwable): Boolean {
+    var cause: Throwable? = error
+    while (cause != null) {
+        val message = cause.message.orEmpty()
+        if (
+            message.contains("EADDRINUSE", ignoreCase = true) ||
+            message.contains("address already in use", ignoreCase = true) ||
+            message.contains("bind failed", ignoreCase = true)
+        ) return true
+        cause = cause.cause
+    }
+    return false
 }

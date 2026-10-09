@@ -1,4 +1,4 @@
-# Building DiPlay
+# Building EadoPlay
 
 Requirements: JDK 25, Android SDK 37, NDK 25.2.9519653 and the included Gradle wrapper. NDK r25c is intentional: it is the last selected toolchain in this project that can emit the Android 4.4/API 19 native target.
 

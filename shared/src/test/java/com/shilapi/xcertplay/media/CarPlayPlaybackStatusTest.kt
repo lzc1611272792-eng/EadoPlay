@@ -13,6 +13,7 @@ class CarPlayPlaybackStatusTest {
     fun reportsOnlyChangesOfThePlaybackStatus() {
         val status = CarPlayPlaybackStatus()
 
+        assertNull(status.playing)
         assertEquals(true, status.accept(update { group(1) { u8(0, 1) } }))
         assertNull(status.accept(update { group(1) { u8(0, 1) } }))
         // Elapsed time alone, as the iPhone sends it every half second: no status, no change.
@@ -28,5 +29,13 @@ class CarPlayPlaybackStatusTest {
 
         status.accept(update { group(1) { u8(0, 1) } })
         assertEquals(false, status.clear())
+        assertNull(status.playing)
+    }
+
+    @Test
+    fun reportsAnInitialPausedState() {
+        val status = CarPlayPlaybackStatus()
+        assertEquals(false, status.accept(update { group(1) { u8(0, 2) } }))
+        assertEquals(false, status.playing)
     }
 }

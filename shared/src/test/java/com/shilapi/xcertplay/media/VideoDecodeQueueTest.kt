@@ -3,6 +3,7 @@ package com.shilapi.xcertplay.media
 import com.shilapi.xcertplay.airplay.VideoCodec
 import org.junit.Assert.*
 import org.junit.Test
+import java.util.concurrent.CountDownLatch
 
 class VideoDecodeQueueTest {
     @Test fun lostReferenceChainWaitsForSuccessfullyQueuedKeyframe() {
@@ -72,5 +73,12 @@ class VideoDecodeQueueTest {
         ))
         assertEquals(3, attempts)
         assertEquals(-1, VideoInputPump.acquire(running = { false }, drain = { fail() }, dequeue = { fail(); 0 }))
+    }
+
+    @Test fun surfaceChangeCanCarryACompletionAcknowledgement() {
+        val completion = CountDownLatch(1)
+        val job = VideoJob.SurfaceChanged(null, completion)
+        assertSame(completion, job.completion)
+        assertNull(job.surface)
     }
 }

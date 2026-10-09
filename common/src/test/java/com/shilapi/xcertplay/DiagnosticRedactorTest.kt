@@ -49,7 +49,7 @@ class DiagnosticRedactorTest {
         val folder = Files.createTempDirectory("diplay-history-test").toFile()
         try {
             repeat(10) { session ->
-                SessionLogFile(folder.resolve("diplay.log")).use {
+                SessionLogFile(folder.resolve("eadoplay.log")).use {
                     it.reset("session=$session")
                     it.append(if (session == 3) "Wi-Fi P2P create rejected code=0" else "CarPlay connected")
                     it.append("password=secret")
