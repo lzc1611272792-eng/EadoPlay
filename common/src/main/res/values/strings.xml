@@ -102,6 +102,11 @@
     <string name="apply_reconnects_carplay_for_size_resolution_music_buffer">Apply reconnects CarPlay for size, resolution, music buffer and frame rate. Other changes apply to your next connection.</string>
     <string name="audio">Audio</string>
     <string name="audio_routing">Audio routing</string>
+    <string name="audio_settings_description">Balance music and guidance volume, tune music buffering, and choose the guidance speaker route.</string>
+    <string name="playback_volume">Playback volume</string>
+    <string name="playback_volume_description">These levels are applied inside EadoPlay. Guidance ducking still lowers music automatically while directions are spoken.</string>
+    <string name="music_volume">Music volume</string>
+    <string name="navigation_volume">Navigation volume</string>
     <string name="auto">Auto</string>
     <string name="auto_start_on_boot">Auto-start on boot</string>
     <string name="automatic_cluster_map_setup">Automatic cluster map setup</string>

@@ -39,6 +39,8 @@ object AirPlayPersistence {
     private const val KEY_HEVC_SOFTWARE_DECODER = "hevc_software_decoder"
     private const val KEY_ADVANCED_AUDIO_CHANNEL_MAPPING = "advanced_audio_channel_mapping"
     private const val KEY_NAVIGATION_STREAM_TYPE = "navigation_stream_type"
+    private const val KEY_MEDIA_VOLUME_PERCENT = "media_volume_percent"
+    private const val KEY_NAVIGATION_VOLUME_PERCENT = "navigation_volume_percent"
     private const val KEY_WIRELESS_ENABLED = "wireless_enabled"
     private const val KEY_WIRELESS_HOTSPOT_MODE = "wireless_hotspot_mode"
     private const val KEY_MANUAL_HOTSPOT_SSID = "manual_hotspot_ssid"
@@ -74,6 +76,8 @@ object AirPlayPersistence {
     const val DEFAULT_MODEL = "Eado"
     const val DEFAULT_OEM_LABEL = "Changan"
     const val DEFAULT_MFI_I2C_PATH = "/dev/i2c-1"
+    const val MIN_AUDIO_VOLUME_PERCENT = 20
+    const val DEFAULT_AUDIO_VOLUME_PERCENT = 100
 
     fun loadDisplayScaleTenths(context: Context): Int {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -137,6 +141,33 @@ object AirPlayPersistence {
             .putInt(KEY_NAVIGATION_STREAM_TYPE, streamType)
             .apply()
     }
+
+    fun loadMediaVolumePercent(context: Context): Int =
+        sanitizeAudioVolumePercent(
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getInt(KEY_MEDIA_VOLUME_PERCENT, DEFAULT_AUDIO_VOLUME_PERCENT),
+        )
+
+    fun saveMediaVolumePercent(context: Context, percent: Int) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putInt(KEY_MEDIA_VOLUME_PERCENT, sanitizeAudioVolumePercent(percent))
+            .apply()
+    }
+
+    fun loadNavigationVolumePercent(context: Context): Int =
+        sanitizeAudioVolumePercent(
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getInt(KEY_NAVIGATION_VOLUME_PERCENT, DEFAULT_AUDIO_VOLUME_PERCENT),
+        )
+
+    fun saveNavigationVolumePercent(context: Context, percent: Int) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putInt(KEY_NAVIGATION_VOLUME_PERCENT, sanitizeAudioVolumePercent(percent))
+            .apply()
+    }
+
+    private fun sanitizeAudioVolumePercent(percent: Int): Int =
+        percent.coerceIn(MIN_AUDIO_VOLUME_PERCENT, DEFAULT_AUDIO_VOLUME_PERCENT)
 
     fun loadWirelessEnabled(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

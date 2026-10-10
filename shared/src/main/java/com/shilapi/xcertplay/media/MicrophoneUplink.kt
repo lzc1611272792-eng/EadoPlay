@@ -25,38 +25,49 @@ import java.util.concurrent.atomic.AtomicBoolean
  * the first downlink audio packet and close it on stream teardown.
  */
 @android.annotation.SuppressLint("MissingPermission")
-internal class MicrophoneUplink(private val config: MicrophoneConfig) : Closeable {
+internal class MicrophoneUplink(
+    private val config: MicrophoneConfig,
+    private val report: (String) -> Unit = {},
+) : Closeable {
     private val running = AtomicBoolean(false)
     private val firstPacketLogged = AtomicBoolean(false)
+    private val firstReadLogged = AtomicBoolean(false)
+    private val firstFrameLogged = AtomicBoolean(false)
+    private var emptyEncodedFrames = 0
     @Volatile private var recorder: AudioRecord? = null
     @Volatile private var socket: DatagramSocket? = null
     @Volatile private var opusEncoder: OpusEncoder? = null
+    @Volatile private var vendorVoiceFocusLease: Closeable? = null
     private var thread: Thread? = null
 
     fun start(): Boolean {
         if (!running.compareAndSet(false, true)) return true
 
+        vendorVoiceFocusLease = CoagentVoiceFocus.acquire(report)
+
+        val capturePlan = LegacyMicrophoneCapture.plan(
+            sdkInt = Build.VERSION.SDK_INT,
+            audioType = config.audioType,
+            negotiatedSampleRate = config.sampleRate,
+        )
         val channelMask = if (config.channels >= 2) {
             AndroidAudioFormat.CHANNEL_IN_STEREO
         } else {
             AndroidAudioFormat.CHANNEL_IN_MONO
         }
         val minBuffer = AudioRecord.getMinBufferSize(
-            config.sampleRate,
+            capturePlan.sampleRate,
             channelMask,
             AndroidAudioFormat.ENCODING_PCM_16BIT,
         )
         if (minBuffer <= 0) {
-            Log.w(TAG, "microphone unavailable rate=${config.sampleRate} channels=${config.channels}")
+            Log.w(TAG, "microphone unavailable rate=${capturePlan.sampleRate} channels=${config.channels}")
+            report("Microphone: unavailable rate=${capturePlan.sampleRate} channels=${config.channels}")
             running.set(false)
             return false
         }
 
-        val source = when (config.audioType) {
-            "telephony" -> MediaRecorder.AudioSource.VOICE_COMMUNICATION
-            "speechrecognition" -> MediaRecorder.AudioSource.VOICE_RECOGNITION
-            else -> MediaRecorder.AudioSource.MIC
-        }
+        val source = capturePlan.audioSource
         val nextEncoder = if (config.codec == AudioCodecKind.OPUS) {
             OpusEncoder(config.bitrate ?: 48_000).takeIf { it.available }
         } else {
@@ -64,10 +75,19 @@ internal class MicrophoneUplink(private val config: MicrophoneConfig) : Closeabl
         }
         if (config.codec == AudioCodecKind.OPUS && nextEncoder == null) {
             Log.w(TAG, "microphone Opus encoder is unavailable")
+            report("Microphone: Opus encoder unavailable")
             running.set(false)
             return false
         }
-        val bufferSize = maxOf(minBuffer * 2, config.frameBytes * 4)
+        if (config.codec == AudioCodecKind.OPUS) {
+            report("Microphone: Opus encoder backend=${nextEncoder?.backend} frameBytes=${config.frameBytes}")
+        }
+        val captureFrameBytes = LegacyMicrophoneCapture.captureFrameBytes(
+            frameMillis = config.frameMillis,
+            sampleRate = capturePlan.sampleRate,
+            channels = config.channels,
+        )
+        val bufferSize = maxOf(minBuffer * 2, captureFrameBytes * 4)
         val nextRecorder = try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 AudioRecord.Builder()
@@ -75,7 +95,7 @@ internal class MicrophoneUplink(private val config: MicrophoneConfig) : Closeabl
                     .setAudioFormat(
                         AndroidAudioFormat.Builder()
                             .setEncoding(AndroidAudioFormat.ENCODING_PCM_16BIT)
-                            .setSampleRate(config.sampleRate)
+                            .setSampleRate(capturePlan.sampleRate)
                             .setChannelMask(channelMask)
                             .build(),
                     )
@@ -85,7 +105,7 @@ internal class MicrophoneUplink(private val config: MicrophoneConfig) : Closeabl
                 @Suppress("DEPRECATION")
                 AudioRecord(
                     source,
-                    config.sampleRate,
+                    capturePlan.sampleRate,
                     channelMask,
                     AndroidAudioFormat.ENCODING_PCM_16BIT,
                     bufferSize,
@@ -93,12 +113,14 @@ internal class MicrophoneUplink(private val config: MicrophoneConfig) : Closeabl
             }
         } catch (error: Exception) {
             Log.e(TAG, "microphone recorder creation failed", error)
+            report("Microphone: recorder creation failed error=${error.javaClass.simpleName}")
             nextEncoder?.close()
             running.set(false)
             return false
         }
         if (nextRecorder.state != AudioRecord.STATE_INITIALIZED) {
             Log.w(TAG, "microphone recorder failed to initialize")
+            report("Microphone: recorder failed to initialize source=$source")
             nextRecorder.release()
             nextEncoder?.close()
             running.set(false)
@@ -109,6 +131,7 @@ internal class MicrophoneUplink(private val config: MicrophoneConfig) : Closeabl
             bindWildcardDatagram("airplay microphone")
         } catch (error: Exception) {
             Log.e(TAG, "microphone socket creation failed", error)
+            report("Microphone: socket creation failed error=${error.javaClass.simpleName}")
             nextRecorder.release()
             nextEncoder?.close()
             running.set(false)
@@ -120,30 +143,43 @@ internal class MicrophoneUplink(private val config: MicrophoneConfig) : Closeabl
         opusEncoder = nextEncoder
         return try {
             nextRecorder.startRecording()
-            thread = Thread({ capture(nextRecorder, nextSocket) }, "carplay-mic").apply {
+            thread = Thread({ capture(nextRecorder, nextSocket, capturePlan, captureFrameBytes) }, "carplay-mic").apply {
                 isDaemon = true
                 start()
             }
             Log.i(
                 TAG,
                 "microphone uplink started type=${config.audioType} " +
-                    "rate=${config.sampleRate} channels=${config.channels} " +
+                    "captureRate=${capturePlan.sampleRate} wireRate=${config.sampleRate} " +
+                    "channels=${config.channels} " +
                     "frameMs=${config.frameMillis} port=${config.port}",
+            )
+            report(
+                "Microphone: recording started audioType=${config.audioType} " +
+                    "source=$source captureRate=${capturePlan.sampleRate} " +
+                    "wireRate=${config.sampleRate} codec=${config.codec}",
             )
             true
         } catch (error: Exception) {
             Log.e(TAG, "microphone recording failed", error)
+            report("Microphone: recording failed error=${error.javaClass.simpleName}")
             release()
             false
         }
     }
 
-    private fun capture(recorder: AudioRecord, socket: DatagramSocket) {
-        val frame = ByteArray(config.frameBytes)
-        val readBuffer = ByteArray(maxOf(frame.size, MIN_READ_BYTES))
+    private fun capture(
+        recorder: AudioRecord,
+        socket: DatagramSocket,
+        capturePlan: LegacyMicrophoneCapture.Plan,
+        captureFrameBytes: Int,
+    ) {
+        val capturedFrame = ByteArray(captureFrameBytes)
+        val readBuffer = ByteArray(maxOf(capturedFrame.size, MIN_READ_BYTES))
         val counters = MicrophoneCounters()
         var filled = 0
         try {
+            report("Microphone: waiting for PCM samples captureRate=${capturePlan.sampleRate}")
             while (running.get()) {
                 val count = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     recorder.read(readBuffer, 0, readBuffer.size, AudioRecord.READ_BLOCKING)
@@ -152,25 +188,36 @@ internal class MicrophoneUplink(private val config: MicrophoneConfig) : Closeabl
                 }
                 if (count < 0) {
                     if (running.get()) Log.e(TAG, "microphone read failed code=$count")
+                    if (running.get()) report("Microphone: read failed code=$count")
                     return
                 }
                 if (count == 0) {
                     continue
                 }
+                if (firstReadLogged.compareAndSet(false, true)) {
+                    report("Microphone: first PCM samples read bytes=$count")
+                }
                 var offset = 0
                 while (offset < count && running.get()) {
-                    val copied = minOf(frame.size - filled, count - offset)
-                    readBuffer.copyInto(frame, filled, offset, offset + copied)
+                    val copied = minOf(capturedFrame.size - filled, count - offset)
+                    readBuffer.copyInto(capturedFrame, filled, offset, offset + copied)
                     filled += copied
                     offset += copied
-                    if (filled == frame.size) {
-                        sendFrame(socket, counters, frame)
+                    if (filled == capturedFrame.size) {
+                        val wireFrame = LegacyMicrophoneCapture.toWireRate(
+                            pcm16le = capturedFrame,
+                            inputSampleRate = capturePlan.sampleRate,
+                            outputSampleRate = config.sampleRate,
+                            channels = config.channels,
+                        )
+                        sendFrame(socket, counters, wireFrame)
                         filled = 0
                     }
                 }
             }
         } catch (error: Exception) {
             if (running.get()) Log.e(TAG, "microphone capture failed", error)
+            if (running.get()) report("Microphone: capture failed error=${error.javaClass.simpleName}")
         } finally {
             running.set(false)
             release()
@@ -178,10 +225,19 @@ internal class MicrophoneUplink(private val config: MicrophoneConfig) : Closeabl
     }
 
     private fun sendFrame(socket: DatagramSocket, counters: MicrophoneCounters, frame: ByteArray) {
+        if (firstFrameLogged.compareAndSet(false, true)) {
+            report("Microphone: first PCM frame ready bytes=${frame.size} expected=${config.frameBytes}")
+        }
         val bodies = if (config.codec == AudioCodecKind.OPUS) {
             opusEncoder?.encode(frame).orEmpty()
         } else {
             listOf(MicrophonePacketizer.toWirePcm(frame))
+        }
+        if (bodies.isEmpty()) {
+            emptyEncodedFrames++
+            if (emptyEncodedFrames == 1 || emptyEncodedFrames == 50) {
+                report("Microphone: encoder produced no packet frames=$emptyEncodedFrames backend=${opusEncoder?.backend}")
+            }
         }
         bodies.forEach { body ->
             sendPacket(
@@ -215,6 +271,7 @@ internal class MicrophoneUplink(private val config: MicrophoneConfig) : Closeabl
                         "head=${packet.copyOf(minOf(packet.size, 16)).toHexString()} " +
                         "port=${config.port}",
                 )
+                report("Microphone: first packet sent bytes=${packet.size} body=${body.size} port=${config.port}")
             }
         } catch (error: Exception) {
             if (running.get()) throw error
@@ -267,6 +324,13 @@ internal class MicrophoneUplink(private val config: MicrophoneConfig) : Closeabl
         val currentEncoder = opusEncoder
         opusEncoder = null
         currentEncoder?.close()
+        val currentVoiceFocusLease = vendorVoiceFocusLease
+        vendorVoiceFocusLease = null
+        try {
+            currentVoiceFocusLease?.close()
+        } catch (_: Exception) {
+            // Best effort; vendor focus integration must never break CarPlay teardown.
+        }
     }
 
     private companion object {

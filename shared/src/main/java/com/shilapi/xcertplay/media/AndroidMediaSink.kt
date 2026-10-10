@@ -42,6 +42,8 @@ class AndroidMediaSink(
     private val preferSoftwareHevcDecoder: Boolean = false,
     private val advancedAudioChannelMapping: Boolean = false,
     private val navigationStreamType: Int = AudioChannelMapper.DEFAULT_NAVIGATION_STREAM_TYPE,
+    mediaVolumePercent: Int = AudioOutputGain.DEFAULT_PERCENT,
+    navigationVolumePercent: Int = AudioOutputGain.DEFAULT_PERCENT,
     onScreenStreamActiveChanged: ((Int, Boolean) -> Unit)? = null,
     private val mediaBufferMillis: Int = MediaAudioBuffer.DEFAULT_MILLIS,
     private val onAudioDiagnostic: (String) -> Unit = {},
@@ -56,7 +58,9 @@ class AndroidMediaSink(
     private val videoDecoders = ConcurrentHashMap<Int, VideoDecoder>()
     private val mediaAudioTypes = mutableSetOf<Int>()
     private val audioRenderers = ConcurrentHashMap<Int, AudioRenderer>()
-    @Volatile private var mediaAudioGain = 1f
+    private val mediaBaseGain = AudioOutputGain.factor(mediaVolumePercent)
+    private val navigationBaseGain = AudioOutputGain.factor(navigationVolumePercent)
+    @Volatile private var mediaDuckGain = 1f
     private val microphoneUplinks = ConcurrentHashMap<Int, MicrophoneUplink>()
     private val pendingVideoCodec = ConcurrentHashMap<Int, VideoCodec>()
     private val videoRecoveryHandlers = ConcurrentHashMap<Int, () -> Unit>()
@@ -170,14 +174,19 @@ class AndroidMediaSink(
 
     override fun onAudioDucking(volumeDb: Double, durationMs: Int) {
         val gain = audioGainForDb(volumeDb)
-        mediaAudioGain = gain
+        mediaDuckGain = gain
+        val effectiveGain = AudioOutputGain.combine(mediaBaseGain, gain)
         audioRenderers.values
             .filter { it.format.audioType == "media" }
-            .forEach { it.setOutputGain(gain) }
-        Log.i("xcertplay-usb", "CarPlay media volume volumeDb=$volumeDb gain=$gain durationMs=$durationMs")
+            .forEach { it.setOutputGain(effectiveGain) }
+        Log.i(
+            "xcertplay-usb",
+            "CarPlay media volume volumeDb=$volumeDb duckGain=$gain baseGain=$mediaBaseGain " +
+                "effectiveGain=$effectiveGain durationMs=$durationMs",
+        )
         onAudioDiagnostic(
             "Audio: media volume ${if (gain < 0.999f) "ducked" else "restored"} " +
-                "db=$volumeDb durationMs=$durationMs",
+                "db=$volumeDb effective=${(effectiveGain * 100).toInt()}% durationMs=$durationMs",
         )
     }
 
@@ -191,7 +200,13 @@ class AndroidMediaSink(
     }
 
     override fun onMicrophoneStarted(type: Int, config: MicrophoneConfig) {
-        val uplink = microphoneUplinks.computeIfAbsent(type) { MicrophoneUplink(config) }
+        onAudioDiagnostic(
+            "Microphone: negotiated audioType=${config.audioType} codec=${config.codec} " +
+                "rate=${config.sampleRate} channels=${config.channels} port=${config.port}",
+        )
+        val uplink = microphoneUplinks.computeIfAbsent(type) {
+            MicrophoneUplink(config, onAudioDiagnostic)
+        }
         if (!uplink.start()) microphoneUplinks.remove(type, uplink)
     }
 
@@ -237,14 +252,61 @@ class AndroidMediaSink(
         if (existing?.format == format) return existing
         existing?.close()
         return AudioRenderer(format, advancedAudioChannelMapping, navigationStreamType, mediaBufferMillis, onAudioDiagnostic).also {
-            if (format.audioType == "media") it.setOutputGain(mediaAudioGain)
+            it.setOutputGain(outputGain(format))
             audioRenderers[type] = it
+        }
+    }
+
+    private fun outputGain(format: AudioFormat): Float {
+        val mode = if (advancedAudioChannelMapping) {
+            AudioChannelMappingMode.AUTOMOTIVE_BUS
+        } else {
+            AudioChannelMappingMode.MOBILE_COMPATIBLE
+        }
+        return when (
+            AudioChannelMapper.map(
+                audioType = format.audioType,
+                payloadType = format.payloadType,
+                mode = mode,
+                navigationStreamType = navigationStreamType,
+            ).channel
+        ) {
+            AudioChannel.MEDIA -> AudioOutputGain.combine(mediaBaseGain, mediaDuckGain)
+            AudioChannel.NAVIGATION -> navigationBaseGain
+            AudioChannel.PHONE, AudioChannel.ASSISTANT -> 1f
         }
     }
 }
 
 internal fun audioGainForDb(volumeDb: Double): Float =
     10.0.pow(volumeDb.coerceIn(-60.0, 0.0) / 20.0).toFloat().coerceIn(0.001f, 1f)
+
+internal object AudioOutputGain {
+    const val MIN_PERCENT = 20
+    const val DEFAULT_PERCENT = 100
+
+    fun sanitize(percent: Int): Int = percent.coerceIn(MIN_PERCENT, DEFAULT_PERCENT)
+
+    fun factor(percent: Int): Float = sanitize(percent) / 100f
+
+    fun combine(baseGain: Float, duckGain: Float): Float =
+        (baseGain * duckGain).coerceIn(0f, 1f)
+}
+
+/** Applies software gain to little-endian signed 16-bit PCM without allocating. */
+internal fun applyPcm16GainInPlace(data: ByteArray, offset: Int, length: Int, gain: Float) {
+    val safeGain = gain.coerceIn(0f, 1f)
+    if (safeGain >= 0.9999f || length < 2) return
+    var position = offset.coerceAtLeast(0)
+    val end = minOf(data.size, offset + length)
+    while (position + 1 < end) {
+        val sample = (data[position].toInt() and 0xff) or (data[position + 1].toInt() shl 8)
+        val scaled = (sample * safeGain).toInt()
+        data[position] = scaled.toByte()
+        data[position + 1] = (scaled shr 8).toByte()
+        position += 2
+    }
+}
 
 /** Serial MediaCodec video decoder: one worker owns configure and frame feeding. */
 private class VideoDecoder(
@@ -594,8 +656,6 @@ private class AudioRenderer(
 
     fun setOutputGain(gain: Float) {
         outputGain = gain.coerceIn(0f, 1f)
-        @Suppress("DEPRECATION")
-        track?.setStereoVolume(outputGain, outputGain)
     }
     private var pcm = ByteArray(64 * 1024)
     private var playbackStarted = false
@@ -776,8 +836,10 @@ private class AudioRenderer(
             )
         }
         track = built
+        // Several Android 4.4 automotive HALs accept setStereoVolume() but still output at
+        // unity gain. Keep AudioTrack neutral and attenuate decoded PCM before writing it.
         @Suppress("DEPRECATION")
-        built.setStereoVolume(outputGain, outputGain)
+        built.setStereoVolume(1f, 1f)
         val capacityBytes = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             built.bufferSizeInFrames * frameBytes
         } else {
@@ -787,6 +849,7 @@ private class AudioRenderer(
         report("Audio: ready audioType=${format.audioType} codec=${format.codec} " +
             "rate=${format.sampleRate} channels=${format.channels} " +
             "route=$routeLabel " +
+            "gain=${(outputGain * 100).toInt()}% " +
             "bufferMs=${capacityBytes * 1000L / bytesPerSecond} startMs=${startThresholdBytes * 1000L / bytesPerSecond}")
         Log.i(
             TAG,
@@ -794,6 +857,7 @@ private class AudioRenderer(
                 "codec=${format.codec} " +
                 "rate=${format.sampleRate} channels=${format.channels} " +
                 "route=$routeLabel " +
+                "gain=${(outputGain * 100).toInt()}% " +
                 "buffer=${capacityBytes * 1000L / bytesPerSecond}ms start=${startThresholdBytes * 1000L / bytesPerSecond}",
         )
     }
@@ -1040,6 +1104,7 @@ private class AudioRenderer(
             applyFadeIn(data, offset, length)
             fadeApplied = true
         }
+        applyPcm16GainInPlace(data, offset, length, outputGain)
         var written = 0
         while (written < length && running) {
             val writeLength = if (playbackStarted) {

@@ -96,6 +96,11 @@
     <string name="apply_reconnects_carplay_for_size_resolution_music_buffer">应用尺寸、分辨率、音乐缓冲和帧率设置时会重新连接 CarPlay。其他改动将在下次连接时生效。</string>
     <string name="audio">音频</string>
     <string name="audio_routing">音频路由</string>
+    <string name="audio_settings_description">分别调整音乐与导航音量，并设置音乐缓冲和导航扬声器通道。</string>
+    <string name="playback_volume">播放音量</string>
+    <string name="playback_volume_description">音量由 EadoPlay 内部调整；导航播报时仍会自动压低音乐。</string>
+    <string name="music_volume">音乐音量</string>
+    <string name="navigation_volume">导航音量</string>
     <string name="auto">自动</string>
     <string name="auto_start_on_boot">开机后自动启动</string>
     <string name="automatic_cluster_map_setup">自动仪表盘地图设置</string>

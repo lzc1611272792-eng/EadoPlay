@@ -289,6 +289,8 @@ class CarPlayHostActivity : ComponentActivity() {
     private var advancedAudioChannelMappingSupported = false
     private var advancedAudioChannelMapping = false
     private var navigationStreamType = 14
+    private var mediaVolumePercent = AirPlayPersistence.DEFAULT_AUDIO_VOLUME_PERCENT
+    private var navigationVolumePercent = AirPlayPersistence.DEFAULT_AUDIO_VOLUME_PERCENT
     private var debugLogsEnabled = false
     private var autoStartOnBoot = false
     private var manufacturer = AirPlayPersistence.DEFAULT_MANUFACTURER
@@ -489,6 +491,8 @@ class CarPlayHostActivity : ComponentActivity() {
             advancedAudioChannelMappingSupported &&
                 AirPlayPersistence.loadAdvancedAudioChannelMapping(this)
         navigationStreamType = AirPlayPersistence.loadNavigationStreamType(this)
+        mediaVolumePercent = AirPlayPersistence.loadMediaVolumePercent(this)
+        navigationVolumePercent = AirPlayPersistence.loadNavigationVolumePercent(this)
         debugLogsEnabled = AirPlayPersistence.loadDebugLogsEnabled(this)
         autoStartOnBoot = AirPlayPersistence.loadAutoStartOnBoot(this)
         manufacturer = AirPlayPersistence.loadManufacturer(this)
@@ -2947,6 +2951,8 @@ class CarPlayHostActivity : ComponentActivity() {
             preferSoftwareHevcDecoder = hevcSoftwareDecoderEnabled,
             advancedAudioChannelMapping = advancedAudioChannelMapping,
             navigationStreamType = navigationStreamType,
+            mediaVolumePercent = mediaVolumePercent,
+            navigationVolumePercent = navigationVolumePercent,
             onScreenStreamActiveChanged = { type, active ->
                 onScreenStreamStateChanged(controllerGeneration, type, active)
             },

@@ -139,7 +139,19 @@ class CarPlayMediaEngine(
         val latencyMs = (stream["audioLatencyMs"] as? Number)?.toInt() ?: 0
         val meta = AudioMeta(type, format, connectionId, latencyMs)
         val microphone = microphoneConfig(session, type, stream, format)
-        if (microphone != null) pendingMicrophone[type] = microphone
+        if (microphone != null) {
+            pendingMicrophone[type] = microphone
+            session.logDebug(
+                "AirPlay microphone negotiated type=$type audioType=$audioType " +
+                    "codec=${microphone.codec} rate=${microphone.sampleRate} port=${microphone.port}",
+            )
+        } else if (type == STREAM_TYPE_MAIN_AUDIO &&
+            (audioType == "telephony" || audioType == "speechrecognition")) {
+            session.logDebug(
+                "AirPlay microphone not negotiated type=$type audioType=$audioType " +
+                    "enabled=$microphoneEnabled micPort=${(stream["dataPort"] as? Number)?.toInt() ?: 0}",
+            )
+        }
 
         val capture = audioCaptureDirectory?.let { AudioPacketCapture(it, type) }
         if (capture != null) audioCaptures[type] = capture

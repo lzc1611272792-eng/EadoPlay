@@ -41,6 +41,11 @@ internal class OpusEncoder(bitrate: Int) : Closeable {
     private var outputPackets = 0
 
     val available: Boolean get() = (nativeEncoder != null || codec != null) && !closed
+    val backend: String get() = when {
+        nativeEncoder != null -> "native"
+        codec != null -> "MediaCodec"
+        else -> "unavailable"
+    }
 
     /**
      * Queues one 20 ms PCM frame and returns all Opus access units made available by the codec.

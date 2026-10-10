@@ -7,9 +7,11 @@ import android.bluetooth.BluetoothHeadset
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.BluetoothSocket
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.ServiceConnection
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
@@ -18,6 +20,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.Parcel
+import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
 import com.shilapi.xcertplay.airplay.AirPlayConfig
@@ -233,6 +236,46 @@ class CarPlayController(
     private val bluetoothControlRunning = AtomicBoolean(false)
     private val wirelessGeneration = AtomicInteger(0)
     private val wirelessConnectionProof = WirelessConnectionProof<AirPlaySession>()
+    private val bluetoothMediaIsolationRunning = AtomicBoolean(false)
+    private val bluetoothMediaIsolationScheduled = AtomicBoolean(false)
+    @Volatile private var bluetoothMediaMonitorRegistered = false
+    @Volatile private var lastBluetoothMediaIsolationAtMs = 0L
+    @Volatile private var wirelessBringUpStartedAtMs = 0L
+
+    private val bluetoothMediaReconnectReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (!wirelessActiveReported.get()) return
+            val action = intent?.action ?: return
+            val target = wirelessBluetoothDevice
+            @Suppress("DEPRECATION")
+            val device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE) as? BluetoothDevice
+            if (device != null && target != null &&
+                !device.address.equals(target.address, ignoreCase = true)
+            ) return
+            when (action) {
+                BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED -> {
+                    val state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, BluetoothProfile.STATE_DISCONNECTED)
+                    if (state == BluetoothProfile.STATE_CONNECTED) {
+                        scheduleBluetoothMediaIsolation("HFP reconnected", BLUETOOTH_PROFILE_SETTLE_MILLIS)
+                    }
+                }
+                BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED -> {
+                    val state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, BluetoothProfile.STATE_DISCONNECTED)
+                    if (state == BluetoothProfile.STATE_CONNECTED) {
+                        scheduleBluetoothMediaIsolation("A2DP reconnected", BLUETOOTH_PROFILE_SETTLE_MILLIS)
+                    }
+                }
+                BluetoothDevice.ACTION_ACL_CONNECTED ->
+                    scheduleBluetoothMediaIsolation("Bluetooth link reconnected", BLUETOOTH_PROFILE_SETTLE_MILLIS)
+                BluetoothAdapter.ACTION_STATE_CHANGED -> {
+                    val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
+                    if (state == BluetoothAdapter.STATE_ON) {
+                        scheduleBluetoothMediaIsolation("Bluetooth adapter restarted", BLUETOOTH_ADAPTER_SETTLE_MILLIS)
+                    }
+                }
+            }
+        }
+    }
 
     private var permissionCloseable: Closeable? = null
     private var attachCloseable: Closeable? = null
@@ -265,7 +308,7 @@ class CarPlayController(
         override fun onSessionEnded(session: AirPlaySession) {
             if (activeSession === session) {
                 activeSession = null
-                synchronized(playbackStatus) { playbackStatus.clear() }?.let { playing -> playbackListener?.invoke(playing) }
+                synchronized(playbackStatus) { playbackStatus.clear() }?.let(::onPlaybackStateChanged)
             }
             debugLog("AirPlay session ended peer=${session.host}")
             uiListener?.onSessionEnded(session)
@@ -476,7 +519,18 @@ class CarPlayController(
     }
 
     private fun onRouteFrame(frame: com.shilapi.xcertplay.iap2.wire.Iap2Frame) {
-        synchronized(playbackStatus) { playbackStatus.accept(frame) }?.let { playing -> playbackListener?.invoke(playing) }
+        synchronized(playbackStatus) { playbackStatus.accept(frame) }?.let(::onPlaybackStateChanged)
+    }
+
+    private fun onPlaybackStateChanged(playing: Boolean) {
+        playbackListener?.invoke(playing)
+        if (
+            playing &&
+            wirelessActiveReported.get() &&
+            SystemClock.elapsedRealtime() - lastBluetoothMediaIsolationAtMs >= PLAYBACK_RECHECK_INTERVAL_MILLIS
+        ) {
+            scheduleBluetoothMediaIsolation("CarPlay playback started", 0L)
+        }
     }
 
     private fun startMfi() {
@@ -815,6 +869,7 @@ class CarPlayController(
     private fun startWireless() {
         availabilityPollGeneration.incrementAndGet()
         phase = Phase.WIRELESS
+        wirelessBringUpStartedAtMs = SystemClock.elapsedRealtime()
         wirelessHandoffRequested.set(false)
         wirelessTunnelReady.set(false)
         wirelessActiveReported.set(false)
@@ -843,7 +898,7 @@ class CarPlayController(
 
     private fun runWireless(generation: Int) {
         try {
-            debugLog("wireless bring-up generation=$generation starting")
+            debugWirelessStage("start", "generation=$generation")
             closeWirelessStack()
             if (
                 closed ||
@@ -856,6 +911,7 @@ class CarPlayController(
             val mfi = mfiSession?.client
                 ?: throw IOException("MFi coprocessor client is unavailable")
             val hotspotInfo = startWirelessHotspot(generation)
+            debugWirelessStage("hotspot-ready", "backend=${hotspotInfo.backend.label}")
             if (isStaleWirelessRun(generation)) {
                 closeWirelessStack()
                 return
@@ -906,6 +962,7 @@ class CarPlayController(
             if (!adapter.isEnabled) throw IOException("Bluetooth is not enabled")
             val device = selectWirelessBluetoothDevice(adapter)
             wirelessBluetoothDevice = device
+            debugWirelessStage("phone-selected", "address=${device.address}")
             val hostBluetoothMac = accessoryBluetoothMac(adapter)
             debugLog(
                 "wireless selected Bluetooth target name=${device.name ?: "unknown"} " +
@@ -940,6 +997,7 @@ class CarPlayController(
                 "wireless AirPlay listener attached bind=$hostAddressText " +
                     "port=${airPlayConfig.port}",
             )
+            debugWirelessStage("airplay-listener-ready")
             if (isStaleWirelessRun(generation)) {
                 closeWirelessStack()
                 return
@@ -965,6 +1023,7 @@ class CarPlayController(
                     "wireless Bonjour services started backend=${bonjourClient.backend} " +
                         "iface=${hotspotInfo.interfaceName ?: "unknown"}",
                 )
+                debugWirelessStage("bonjour-ready", "backend=${bonjourClient.backend}")
             } catch (error: Exception) {
                 bonjour = null
                 runCatching { bonjourClient.close() }
@@ -986,6 +1045,7 @@ class CarPlayController(
             )
             val socket = connectWirelessRfcomm(adapter, device)
             debugLog("wireless RFCOMM connected address=${device.address}")
+            debugWirelessStage("rfcomm-connected")
             if (isStaleWirelessRun(generation)) {
                 closeWirelessStack()
                 return
@@ -1194,6 +1254,7 @@ class CarPlayController(
         }
         wirelessTunnelReady.set(true)
         wirelessConnectionProof.authenticated(generation)
+        debugWirelessStage("tunnel-ready")
         debugLog(
             "wireless iAP2 tunnel ready; " +
                 "handoffRequested=${wirelessHandoffRequested.get()}",
@@ -1217,8 +1278,9 @@ class CarPlayController(
                 }
                 debugLog("wireless handoff ready; closing Bluetooth bootstrap transport")
                 closeBluetoothBootstrapTransport()
-                disconnectChanganBluetoothProfiles(wirelessBluetoothDevice)
-                disconnectWirelessA2dp(wirelessBluetoothDevice)
+                registerBluetoothMediaReconnectMonitor()
+                isolateWirelessBluetoothMedia("initial wireless handoff")
+                debugWirelessStage("handoff-complete")
                 onStatus(CarPlayStatus.WirelessActive)
             },
             "xcertplay-wireless-handoff",
@@ -1897,8 +1959,12 @@ class CarPlayController(
     }
 
     private fun closeWirelessStack(service: CarPlayVpnService? = vpnService) {
+        // Stop reconnect callbacks before restoring the stock media profiles.
+        wirelessActiveReported.set(false)
         wirelessConnectionProof.clear()
         media.setIapTunnelHandler(null)
+        unregisterBluetoothMediaReconnectMonitor()
+        bluetoothMediaIsolationScheduled.set(false)
         val activeTunnel = wirelessTunnelChannel
         wirelessTunnelChannel = null
         if (activeTunnel != null) closeBestEffort("tunneled iAP2 link") { activeTunnel.close() }
@@ -1925,6 +1991,87 @@ class CarPlayController(
         if (service != null) closeBestEffort("AirPlay service") { service.detach() }
     }
 
+    private fun debugWirelessStage(stage: String, detail: String? = null) {
+        val startedAt = wirelessBringUpStartedAtMs
+        val elapsed = if (startedAt > 0L) {
+            (SystemClock.elapsedRealtime() - startedAt).coerceAtLeast(0L)
+        } else {
+            0L
+        }
+        debugLog(
+            buildString {
+                append("TIMING wireless/")
+                append(stage)
+                append(" elapsedMs=")
+                append(elapsed)
+                if (!detail.isNullOrBlank()) {
+                    append(' ')
+                    append(detail)
+                }
+            },
+        )
+    }
+
+    private fun registerBluetoothMediaReconnectMonitor() {
+        if (bluetoothMediaMonitorRegistered) return
+        val filter = IntentFilter().apply {
+            addAction(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED)
+            addAction(BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED)
+            addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
+            addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+        }
+        try {
+            appContext.registerReceiver(bluetoothMediaReconnectReceiver, filter)
+            bluetoothMediaMonitorRegistered = true
+            debugLog("wireless Bluetooth reconnect monitor registered for HFP/A2DP/ACL")
+        } catch (error: Throwable) {
+            debugLog("wireless Bluetooth media reconnect monitor registration failed", error)
+        }
+    }
+
+    private fun unregisterBluetoothMediaReconnectMonitor() {
+        if (!bluetoothMediaMonitorRegistered) return
+        bluetoothMediaMonitorRegistered = false
+        try {
+            appContext.unregisterReceiver(bluetoothMediaReconnectReceiver)
+        } catch (_: IllegalArgumentException) {
+            // The process or vendor Bluetooth service may already have removed the receiver.
+        }
+    }
+
+    private fun scheduleBluetoothMediaIsolation(reason: String, delayMillis: Long) {
+        if (!wirelessActiveReported.get() || closed) return
+        if (!bluetoothMediaIsolationScheduled.compareAndSet(false, true)) return
+        mainHandler.postDelayed(
+            {
+                bluetoothMediaIsolationScheduled.set(false)
+                if (!wirelessActiveReported.get() || closed) return@postDelayed
+                Thread(
+                    { isolateWirelessBluetoothMedia(reason) },
+                    "xcertplay-wireless-media-isolation",
+                ).apply {
+                    isDaemon = true
+                    start()
+                }
+            },
+            delayMillis,
+        )
+    }
+
+    private fun isolateWirelessBluetoothMedia(reason: String) {
+        if (!wirelessActiveReported.get() || closed) return
+        if (!bluetoothMediaIsolationRunning.compareAndSet(false, true)) return
+        try {
+            debugLog("wireless Bluetooth profile isolation starting reason=$reason; including HFP")
+            disconnectChanganBluetoothProfiles(wirelessBluetoothDevice)
+            disconnectWirelessA2dp(wirelessBluetoothDevice)
+            lastBluetoothMediaIsolationAtMs = SystemClock.elapsedRealtime()
+            debugLog("wireless Bluetooth profile isolation complete reason=$reason; HFP/A2DP/AVRCP requested disconnected")
+        } finally {
+            bluetoothMediaIsolationRunning.set(false)
+        }
+    }
+
     private fun isBluetoothDeviceConnected(device: BluetoothDevice): Boolean = try {
         val method = BluetoothDevice::class.java.getMethod("isConnected")
         method.invoke(device) as? Boolean == true
@@ -1939,8 +2086,8 @@ class CarPlayController(
      * Once the authenticated Wi-Fi tunnel has taken over, the iPhone must no longer remain an
      * A2DP/AVRCP source for the stock head-unit Bluetooth stack. Some Android 4.4 Changan ROMs
      * immediately mirror their paused source state back to the phone, which pauses CarPlay music.
-     * Disconnect only A2DP: pairing remains intact and the already-active Wi-Fi CarPlay session
-     * does not depend on the Bluetooth media profile.
+     * Disconnect only the media profiles: pairing and HFP remain intact, and the already-active
+     * Wi-Fi CarPlay session does not depend on Bluetooth media.
      */
     private fun disconnectWirelessA2dp(device: BluetoothDevice?) {
         if (device == null) {
@@ -1996,8 +2143,9 @@ class CarPlayController(
      * public BluetoothA2dp service.  Leaving that stack connected after the Wi-Fi handoff lets the
      * stock AVRCP controller send PAUSE to the iPhone and consume steering-wheel media keys.  Bind
      * to the exported profile services and suspend the classic Bluetooth profiles only after the
-     * authenticated CarPlay tunnel is ready.  Pairing is retained and the profiles are restored
-     * when the wireless stack closes.
+     * authenticated CarPlay tunnel is ready. Pairing is retained while HFP/A2DP/AVRCP are
+     * disconnected, matching the r17 handoff behavior; all three profiles are restored when the
+     * wireless stack closes.
      */
     private fun disconnectChanganBluetoothProfiles(device: BluetoothDevice?) {
         val address = device?.address ?: run {
@@ -2005,6 +2153,13 @@ class CarPlayController(
             return
         }
         val profiles = listOf(
+            ChanganBluetoothProfile(
+                name = "HFP",
+                serviceClass = "com.nforetek.bt.service.NfServiceHfp",
+                descriptor = "com.nforetek.bt.aidl.INfCommandHfp",
+                disconnectTransaction = 9,
+                connectTransaction = 8,
+            ),
             ChanganBluetoothProfile(
                 name = "AVRCP",
                 serviceClass = "com.nforetek.bt.service.NfServiceAvrcp",
@@ -2018,13 +2173,6 @@ class CarPlayController(
                 descriptor = "com.nforetek.bt.aidl.INfCommandA2dp",
                 disconnectTransaction = 8,
                 connectTransaction = 7,
-            ),
-            ChanganBluetoothProfile(
-                name = "HFP",
-                serviceClass = "com.nforetek.bt.service.NfServiceHfp",
-                descriptor = "com.nforetek.bt.aidl.INfCommandHfp",
-                disconnectTransaction = 9,
-                connectTransaction = 8,
             ),
         )
         var accepted = false
@@ -2452,6 +2600,9 @@ class CarPlayController(
         private const val RFCOMM_CONNECT_TIMEOUT_MILLIS = 15_000L
         private const val CHANGAN_BT_PACKAGE = "com.nforetek.bt"
         private const val CHANGAN_BT_BIND_TIMEOUT_SECONDS = 2L
+        private const val BLUETOOTH_PROFILE_SETTLE_MILLIS = 800L
+        private const val BLUETOOTH_ADAPTER_SETTLE_MILLIS = 1_500L
+        private const val PLAYBACK_RECHECK_INTERVAL_MILLIS = 30_000L
         private const val MAXIMUM_REENUMERATION_ATTEMPTS = 2
         private const val EXECUTOR_CLOSE_TIMEOUT_MILLIS = 2_000L
         private const val ADAPTER_ADDRESS_PLACEHOLDER = "02:00:00:00:00:00"

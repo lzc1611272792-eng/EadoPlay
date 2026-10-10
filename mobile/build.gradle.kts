@@ -17,7 +17,7 @@ android {
         minSdk = 19
         targetSdk = 37
         multiDexEnabled = true
-        versionCode = 27
+        versionCode = 38
         versionName = "0.2.7"
 
     }
@@ -39,7 +39,7 @@ android {
 
     buildTypes {
         debug {
-            versionNameSuffix = "-4.4-eado-r17"
+            versionNameSuffix = "-4.4-eado-r28"
         }
         release {
             optimization {

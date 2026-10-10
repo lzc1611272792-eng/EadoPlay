@@ -2,16 +2,20 @@
 
 EadoPlay is an independent CarPlay client adapted for the **2018 Changan Eado factory head unit running Android 4.4.2**. It is derived from [shihabal3amri/DiPlay](https://github.com/shihabal3amri/DiPlay), [DiPlay-Legacy-Android](https://github.com/programmerguohuajing/DiPlay-Legacy-Android), and the upstream [xcertplay](https://github.com/shilapi/xcertplay) project.
 
-Current vehicle-tested build: `0.2.7-4.4-eado-r17`. See [README.zh-CN.md](README.zh-CN.md) for the full Chinese documentation.
+Current vehicle-tested build: `0.2.7-4.4-eado-r28`. See [README.zh-CN.md](README.zh-CN.md) for the full Chinese documentation.
 
 ## Status
 
 - Wireless CarPlay works on the target head unit, including navigation, media audio and touch input.
 - Steering-wheel volume, play/pause, previous/next, and system-call answer/hang-up controls are adapted.
+- Music and navigation have independent 20–100% software-volume controls with CarPlay navigation ducking preserved.
+- The authenticated wireless handoff isolates the factory HFP/A2DP/AVRCP profiles to prevent reverse pause commands, monitors ignition-cycle Bluetooth reconnection, and restores the profiles when CarPlay closes.
+- Changan Coagent microphone focus and a legacy 16 kHz capture/resampling path improve Android 4.4 call compatibility. Locked system calls in both directions and incoming WeChat calls are vehicle-tested.
 - Compatibility paths are included for Android 4.4.2 audio, video, networking and background-service behavior.
 - Experimental controls include 30/60 FPS, resolution scaling and SurfaceView/TextureView selection.
 - The connection page exposes detailed stages and failure points for on-vehicle diagnosis.
 - Wired CarPlay is implemented but is not yet end-to-end validated on the target vehicle; the current blocker is the Android USB Host permission stage.
+- Known limitation: an outgoing WeChat call started from CarPlay while the iPhone is locked may remain silent until the phone is woken.
 
 ## Source builds and runtime authentication
 

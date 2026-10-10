@@ -2,16 +2,20 @@
 
 EadoPlay 是面向 **2018 款长安逸动原厂 Android 4.4.2 车机**适配的 CarPlay 客户端，基于 [shihabal3amri/DiPlay](https://github.com/shihabal3amri/DiPlay)、[DiPlay-Legacy-Android](https://github.com/programmerguohuajing/DiPlay-Legacy-Android) 及其上游 [xcertplay](https://github.com/shilapi/xcertplay) 修改。
 
-当前实车测试版本：`0.2.7-4.4-eado-r17`。
+当前实车测试版本：`0.2.7-4.4-eado-r28`。
 
 ## 当前状态
 
 - 无线 CarPlay 已在目标车机上实车连通，可使用导航、媒体音频和触控。
 - 已适配方控音量、播放/暂停、上一曲、下一曲，以及系统电话接听/挂断。
+- 音乐与导航支持 20%–100% 独立软件音量；Android 4.4 上直接调节解码后的 PCM，并保留导航播报时自动压低音乐的逻辑。
+- 无线连接完成后会隔离原车 HFP/A2DP/AVRCP，避免原车蓝牙反向暂停 CarPlay；熄火再启动导致蓝牙重连时会自动再次处理，退出 CarPlay 后恢复蓝牙配置。
+- 已加入长安 Coagent 麦克风占用适配和 Android 4.4 的 16 kHz 采集兼容路径。锁屏状态下系统电话双向、微信来电已实车验证。
 - 包含 Android 4.4.2 所需的音频、视频、网络和后台服务兼容处理。
 - 提供 30/60 帧、分辨率比例及 SurfaceView/TextureView 等实验设置。
 - 连接页面会显示详细阶段与失败节点，便于实车排查。
 - 有线 CarPlay 已包含 USB Host 实现，但目标车机目前仍卡在 Android USB 授权阶段，尚未完成端到端验证。
+- 已知限制：iPhone 锁屏时，从 CarPlay 主动拨出的微信电话可能无声，点亮手机后恢复；这是当前版本唯一保留的实车通话限制。
 
 ## 下载、源码构建与认证材料
 

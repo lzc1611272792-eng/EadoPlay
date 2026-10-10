@@ -94,6 +94,7 @@ class DiPlayActivity : ComponentActivity() {
             android.util.Log.e("EadoPlaySetup", "CarPlay authentication could not be loaded", it)
             getString(R.string.setup_error_auth)
         }
+        navigationStreamType = AirPlayPersistence.loadNavigationStreamType(this)
         pendingCarHotspotSetup = savedInstanceState?.getBoolean("pending_car_hotspot") ?: false
         page = savedInstanceState?.getString("page") ?: intent.getStringExtra("page") ?: "home"
         render()
@@ -478,7 +479,29 @@ class DiPlayActivity : ComponentActivity() {
 
     private fun renderAudioCategory(content: LinearLayout) {
         content.addView(label(getString(R.string.audio_routing), 28, TEXT, true))
-        content.addView(label("音乐抗抖动缓冲与导航扬声器声道映射。", 14, MUTED).apply { setPadding(0, dp(4), 0, dp(18)) })
+        content.addView(label(getString(R.string.audio_settings_description), 14, MUTED).apply { setPadding(0, dp(4), 0, dp(18)) })
+
+        section(content, getString(R.string.playback_volume), R.drawable.ic_dp_audio) { card ->
+            card.addView(label(getString(R.string.playback_volume_description), 14, MUTED).apply {
+                setPadding(0, 0, 0, dp(12))
+            })
+            val percentages = listOf(20, 30, 40, 50, 60, 70, 75, 80, 90, 100)
+            fun selectedIndex(percent: Int): Int = percentages.indexOf(percent)
+                .takeIf { it >= 0 }
+                ?: percentages.lastIndex
+            choice(
+                card,
+                getString(R.string.music_volume),
+                percentages.map { "$it%" },
+                selectedIndex(AirPlayPersistence.loadMediaVolumePercent(this)),
+            ) { AirPlayPersistence.saveMediaVolumePercent(this, percentages[it]) }
+            choice(
+                card,
+                getString(R.string.navigation_volume),
+                percentages.map { "$it%" },
+                selectedIndex(AirPlayPersistence.loadNavigationVolumePercent(this)),
+            ) { AirPlayPersistence.saveNavigationVolumePercent(this, percentages[it]) }
+        }
 
         section(content, getString(R.string.music_buffer), R.drawable.ic_dp_audio) { card ->
             val bufferPresets = com.shilapi.xcertplay.media.MediaAudioBuffer.presets
