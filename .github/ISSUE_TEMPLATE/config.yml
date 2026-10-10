@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
-  - name: Upstream DiPlay documentation
+  - name: 上游 DiPlay 文档
     url: https://github.com/shihabal3amri/DiPlay/blob/main/docs/INSTALL.md
-    about: Review the upstream protocol and connection documentation while accounting for EadoPlay's Android 4.4 adaptation.
+    about: 查阅上游协议与连接文档时，请同时注意 EadoPlay 针对 Android 4.4 所做的兼容适配。

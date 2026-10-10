@@ -1,4 +1,4 @@
-name: Android checks
+name: Android 构建检查
 on:
   push:
     branches: [main]
@@ -12,7 +12,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Reject credential files in public source
+      - name: 检查公开源码中是否包含凭据
         run: python3 scripts/check_public_tree.py
       - uses: actions/setup-java@v4
         with:
@@ -22,11 +22,11 @@ jobs:
         with:
           packages: platform-tools platforms;android-37.0 build-tools;36.0.0 ndk;25.2.9519653
       - uses: gradle/actions/setup-gradle@v4
-      - name: Make Gradle wrapper executable
+      - name: 设置 Gradle 执行权限
         run: chmod +x gradlew
-      - name: Unit tests, lint and source-only debug build
+      - name: 单元测试、代码检查和无认证资产调试构建
         run: ./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest :mobile:lintDebug :mobile:assembleDebug --stacktrace
-      - name: Test reports
+      - name: 上传测试报告
         if: always()
         uses: actions/upload-artifact@v4
         with:

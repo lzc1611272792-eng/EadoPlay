@@ -1,36 +1,36 @@
-name: Connection, display or audio problem
-description: Help us reproduce an issue on your head unit.
-title: '[Bug] '
+name: 连接、画面或音频问题
+description: 帮助我们在车机上复现和定位问题。
+title: '[问题] '
 body:
   - type: markdown
     attributes:
-      value: 'Test while parked. Reports are public: review diagnostic files and remove personal information before attaching them. Never post credentials.'
+      value: '请在安全停车状态下测试。Issue 内容是公开的，上传诊断文件前请检查并删除个人信息，禁止上传证书、密钥或配对记录。'
   - type: input
     id: version
-    attributes: {label: EadoPlay version, placeholder: '0.2.7-4.4-eado-r17'}
+    attributes: {label: EadoPlay 版本, placeholder: '0.2.7-4.4-eado-r28'}
     validations: {required: true}
   - type: input
     id: car
-    attributes: {label: Car and head-unit model, placeholder: 'Car model/year, DiLink version, Android version'}
+    attributes: {label: 车辆和车机型号, placeholder: '车型/年份、车机系统版本、Android 版本'}
     validations: {required: true}
   - type: input
     id: phone
-    attributes: {label: iPhone model and exact iOS version}
+    attributes: {label: iPhone 型号和准确的 iOS 版本}
     validations: {required: true}
   - type: dropdown
     id: transport
     attributes:
-      label: Connection
-      options: [Wireless, USB, Both]
+      label: 连接方式
+      options: [无线, USB 有线, 两种都存在]
     validations: {required: true}
   - type: textarea
     id: reproduce
     attributes:
-      label: What happened and how to reproduce it
-      description: 'Include expected behavior, steps, display settings and whether the car is also connected to a Wi-Fi network. For wireless, include the band/channel if the report shows it.'
+      label: 问题现象和复现步骤
+      description: '请写明预期结果、操作步骤、画面设置，以及车机是否同时连接其他 Wi-Fi。无线问题如能看到频段和信道，也请一并提供。'
     validations: {required: true}
   - type: textarea
     id: diagnostics
     attributes:
-      label: Diagnostic report or recording
-      description: 'Settings → Save diagnostic report. Review the file and remove personal information before attaching it. Never upload credentials or pairing records.'
+      label: 诊断报告、照片或录像
+      description: '可在“设置 → 保存诊断报告”导出。上传前请检查并删除个人信息，禁止上传证书、密钥或配对记录。'

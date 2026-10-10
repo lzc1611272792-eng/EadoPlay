@@ -1,51 +1,56 @@
 # EadoPlay
 
-EadoPlay is an independent CarPlay client adapted for the **2018 Changan Eado factory head unit running Android 4.4.2**. It is derived from [shihabal3amri/DiPlay](https://github.com/shihabal3amri/DiPlay), [DiPlay-Legacy-Android](https://github.com/programmerguohuajing/DiPlay-Legacy-Android), and the upstream [xcertplay](https://github.com/shilapi/xcertplay) project.
+EadoPlay 是面向 **2018 款长安逸动原厂 Android 4.4.2 车机**适配的 CarPlay 客户端，基于 [shihabal3amri/DiPlay](https://github.com/shihabal3amri/DiPlay)、[DiPlay-Legacy-Android](https://github.com/programmerguohuajing/DiPlay-Legacy-Android) 及其上游 [xcertplay](https://github.com/shilapi/xcertplay) 修改。
 
-Current vehicle-tested build: `0.2.7-4.4-eado-r28`. See [README.zh-CN.md](README.zh-CN.md) for the full Chinese documentation.
+当前实车测试版本：`0.2.7-4.4-eado-r28`。
 
-## Status
+## 当前状态
 
-- Wireless CarPlay works on the target head unit, including navigation, media audio and touch input.
-- Steering-wheel volume, play/pause, previous/next, and system-call answer/hang-up controls are adapted.
-- Music and navigation have independent 20–100% software-volume controls with CarPlay navigation ducking preserved.
-- The authenticated wireless handoff isolates the factory HFP/A2DP/AVRCP profiles to prevent reverse pause commands, monitors ignition-cycle Bluetooth reconnection, and restores the profiles when CarPlay closes.
-- Changan Coagent microphone focus and a legacy 16 kHz capture/resampling path improve Android 4.4 call compatibility. Locked system calls in both directions and incoming WeChat calls are vehicle-tested.
-- Compatibility paths are included for Android 4.4.2 audio, video, networking and background-service behavior.
-- Experimental controls include 30/60 FPS, resolution scaling and SurfaceView/TextureView selection.
-- The connection page exposes detailed stages and failure points for on-vehicle diagnosis.
-- Wired CarPlay is implemented but is not yet end-to-end validated on the target vehicle; the current blocker is the Android USB Host permission stage.
-- Known limitation: an outgoing WeChat call started from CarPlay while the iPhone is locked may remain silent until the phone is woken.
+- 无线 CarPlay 已在目标车机上实车连通，可使用导航、媒体音频和触控。
+- 已适配方控音量、播放/暂停、上一曲、下一曲，以及系统电话接听/挂断。
+- 音乐与导航支持 20%–100% 独立软件音量；Android 4.4 上直接调节解码后的 PCM，并保留导航播报时自动压低音乐的逻辑。
+- 无线连接完成后会隔离原车 HFP/A2DP/AVRCP，避免原车蓝牙反向暂停 CarPlay；熄火再启动导致蓝牙重连时会自动再次处理，退出 CarPlay 后恢复蓝牙配置。
+- 已加入长安 Coagent 麦克风占用适配和 Android 4.4 的 16 kHz 采集兼容路径。锁屏状态下系统电话双向、微信来电已实车验证。
+- 包含 Android 4.4.2 所需的音频、视频、网络和后台服务兼容处理。
+- 提供 30/60 帧、分辨率比例及 SurfaceView/TextureView 等实验设置。
+- 连接页面会显示详细阶段与失败节点，便于实车排查。
+- 有线 CarPlay 已包含 USB Host 实现，但目标车机目前仍卡在 Android USB 授权阶段，尚未完成端到端验证。
+- 已知限制：iPhone 锁屏时，从 CarPlay 主动拨出的微信电话可能无声，点亮手机后恢复。
 
-## Source builds and runtime authentication
+## 下载、源码构建与认证材料
 
-The Git tree does not contain accessory certificates or private keys, Android release-signing keys, or real iPhone pairing records. An ordinary source build is intended for development and review and does not contain the runtime identity needed for standalone CarPlay accessory authentication.
+Git 源码不包含配件证书、私钥、Android 发布签名或真实手机配对记录。普通源码构建用于开发和审查，不具备独立完成 CarPlay 配件认证所需的运行时身份。
 
-Following the public upstream release model, the vehicle-test APK attached to a Release may be built with an experimental accessory identity recovered during research of publicly available Carlinkit firmware. Any APK recipient can extract that identity. It is not a newly issued Apple/MFi identity for EadoPlay, and continued acceptance by future iOS versions is not guaranteed. See [SECURITY.md](SECURITY.md), [docs/BUILD.md](docs/BUILD.md), and [docs/THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).
+项目 Release 中提供的实车测试 APK 会按照上游项目的公开发布方式，显式注入一套从公开 Carlinkit 固件研究中获得的实验性配件身份。该身份可以被任何 APK 接收者提取；它不是为 EadoPlay 新签发的 Apple/MFi 身份，也不保证未来 iOS 继续接受。详情见 [安全说明](SECURITY.md)、[构建说明](docs/BUILD.md) 和 [第三方声明](docs/THIRD_PARTY_NOTICES.md)。
 
-Build the source-only debug APK with:
+源码构建：
 
 ```powershell
 .\gradlew.bat :mobile:assembleDebug
 ```
 
-A standalone test build requires externally provisioned authentication assets selected through `DIPLAY_AUTH_ASSETS_DIR`. Those files must remain outside Git.
+若要构建可独立连接 iPhone 的测试 APK，需在 Git 仓库之外自行准备认证资产，并通过 `DIPLAY_AUTH_ASSETS_DIR` 显式注入。不要把这些文件提交到 Git。
 
-## Installation
+## 车机安装
 
-The target vehicle firmware rejects ordinary third-party APK installation. Vehicle testing therefore uses its engineering ADB access to place the APK under `/data/app`. This procedure is device-specific and should not be assumed safe or available on other head units. See the Chinese [ADB installation guide](docs/长安逸动2018车机ADB安装APK操作手册.md).
+目标车机的厂商固件会拒绝普通第三方 APK 安装，实车使用了工程 ADB 将 APK 写入 `/data/app` 的设备特定方式：
 
-## Disclaimer
+- [长安逸动 2018 车机 ADB 安装 APK 操作手册](docs/长安逸动2018车机ADB安装APK操作手册.md)
+- [EadoPlay 优化实施方案](docs/长安逸动EadoPlay优化实施方案.md)
 
-- This is independent community research, not an official product of or an endorsement by Apple, Changan Automobile, Carlinkit, or the upstream maintainers.
-- Apple, CarPlay, Changan, vehicle model names, and related marks or assets belong to their respective owners and are used only to identify compatibility targets.
-- No warranty is made regarding the provenance, rights status, continued validity, or general distribution suitability of experimental authentication data.
-- The software is provided as-is, without warranties of merchantability, fitness, reliability, or universal compatibility. Users assume all risk arising from installation, use, and modification of vehicle systems.
-- Do not represent this project as an official or certified product. Redistributed modifications must retain all applicable open-source licenses, attribution, copyright, and third-party notices.
-- Work on the head unit only while the vehicle is safely parked.
+该方法依赖目标车机开放的工程调试权限，不保证适用于其他车辆。操作前应备份应用数据，禁止盲目修改其他系统文件。
 
-## License and credits
+## 免责声明
 
-The receiver derives from xcertplay/DiPlay under GNU GPL v3. Portions of the interface derive from DiAuto under AGPL v3. See [LICENSE](LICENSE), `docs/licenses`, and [docs/THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).
+- 本项目是独立的社区研究和兼容性实验，不是 Apple、长安汽车、Carlinkit 或上游作者的官方产品，也不代表上述主体的认可或合作。
+- CarPlay、Apple 及相关标志是 Apple Inc. 的商标或资产；长安及车型名称归各自权利人所有。项目中的名称仅用于说明兼容目标。
+- 实验性认证数据的来源、权利状态、持续有效性和一般分发适用性均不作保证。使用者应自行确认当地法律、协议和设备保修要求。
+- 本软件按现状提供，不承诺适销性、特定用途适用性、稳定性或普遍兼容性。安装、使用、改装车辆系统造成的风险由使用者自行承担。
+- 禁止以本项目冒充官方产品、认证产品或进行误导性商业宣传。分发修改版时必须保留相应开源许可证、来源、版权和第三方声明。
+- 实车操作必须在安全停车状态下进行，不要在驾驶过程中安装、调整设置或查看日志。
 
-Thanks to the xcertplay, DiPlay, DiPlay-Legacy-Android, DiAuto, LIVI, Showcase, and related open-source contributors. EadoPlay branding and Changan-specific adaptation do not alter upstream ownership of the original work.
+## 开源许可与致谢
+
+核心接收端继承自 xcertplay/DiPlay，适用 GNU GPL v3；部分界面源自 DiAuto，适用 AGPL v3。完整文本和第三方许可位于 [LICENSE](LICENSE)、`docs/licenses` 与 [第三方声明](docs/THIRD_PARTY_NOTICES.md)。
+
+感谢 xcertplay、DiPlay、DiPlay-Legacy-Android、DiAuto、LIVI、Showcase 及相关开源贡献者。本仓库的独立名称和长安逸动适配不改变上游作者对原始工作的权利。

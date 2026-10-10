@@ -1,9 +1,9 @@
-# EadoPlay security and release packaging
+# EadoPlay 安全与发布打包说明
 
-The vehicle-test APK may intentionally bundle the experimental accessory certificate and matching key described in `docs/THIRD_PARTY_NOTICES.md`, following the upstream DiPlay release model. Anyone with the APK can extract them. Local compilation, Git history removal, and obfuscation do not make a bundled shared key confidential or revoke previous copies.
+按照上游 DiPlay 的公开发布方式，实车测试 APK 可能会包含 `docs/THIRD_PARTY_NOTICES.md` 所述的实验性配件证书及对应密钥。任何获得 APK 的人都可以提取这些内容。本地编译、清理 Git 历史或代码混淆，均不能让已经随 APK 分发的共享密钥重新成为秘密，也不能撤回已经流出的副本。
 
-The public Git tree and corresponding source archive exclude accessory keys, Android release-signing secrets, real pairing records, vehicle logs, and hotspot credentials. Build checks reject credential containers and private-key blocks in tracked files. Synthetic test identities are generated at runtime. Source builds have no automatic private-asset import; standalone packaging requires an explicit local directory and permits only the two expected runtime files.
+公开 Git 源码及其源码压缩包不包含配件密钥、Android 发布签名、真实手机配对记录、车辆日志或热点密码。构建检查会拒绝凭据容器文件和私钥文本。测试身份在运行时生成；源码构建不会自动导入私有认证资产。若要生成可独立连接的测试包，必须显式指定外部目录，并且只允许导入预期的两项运行时文件。
 
-The Android APK-signing key is separate, stays local, and is never bundled in the APK. Current acceptance of the experimental accessory identity does not establish Apple certification, ownership, authorization, or future compatibility. EadoPlay is not an official product of Apple, Changan Automobile, Carlinkit, or the upstream maintainers.
+Android APK 签名密钥与配件认证身份相互独立，始终保存在本地，不会打包进 APK。实验性配件身份目前能被 iPhone 接受，并不代表它获得 Apple 认证，也不证明其所有权、授权状态或未来兼容性。EadoPlay 不是 Apple、长安汽车、Carlinkit 或上游维护者的官方产品。
 
-Review diagnostic reports before posting. Never include credentials or pairing records in public issues. Use GitHub private vulnerability reporting for sensitive findings.
+公开诊断报告前请先检查内容并删除个人信息。不要在公开 Issue 中上传凭据或配对记录；敏感安全问题请使用 GitHub 的私密漏洞报告功能。

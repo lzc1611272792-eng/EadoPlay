@@ -1,35 +1,35 @@
 # EadoPlay r28
 
-EadoPlay r28 is the current vehicle-tested build for the 2018 Changan Eado factory Android 4.4.2 head unit. It includes the stable r17 feature set plus the audio, call-microphone and ignition-cycle Bluetooth fixes validated during r18–r28 testing.
+EadoPlay r28 是目前面向 2018 款长安逸动原厂 Android 4.4.2 车机的实车测试版本。它包含稳定的 r17 功能，并汇总了 r18–r28 实车测试期间完成的音频、通话麦克风和车辆重新启动后蓝牙重连修复。
 
-## User-facing changes
+## 主要变化
 
-- Separate 20–100% software-volume controls for music and navigation. The target Android 4.4 audio driver ignores normal `AudioTrack` volume changes, so r28 applies gain directly to decoded PCM while retaining CarPlay navigation ducking.
-- Changan Coagent microphone-focus integration and a legacy 16 kHz capture/resampling path for the factory audio stack.
-- Wireless handoff disconnects the factory HFP/A2DP/AVRCP profiles after the authenticated Wi-Fi tunnel is active, preventing the stock Bluetooth player from pausing CarPlay music.
-- Bluetooth reconnection after an ignition cycle is detected and isolated again after a short settling delay. Playback-triggered checking is event-driven and limited to at most once every 30 seconds.
-- More precise wireless-stage and microphone diagnostics. Logs are bounded to about 4 MiB total and do not record call audio or protocol payloads.
+- 新增音乐与导航 20%–100% 独立软件音量。目标车机的 Android 4.4 音频驱动会忽略普通 `AudioTrack` 音量调整，因此 r28 直接对解码后的 PCM 应用增益，同时保留导航播报时自动压低音乐的效果。
+- 接入长安 Coagent 麦克风焦点，并增加适配原厂音频栈的 16 kHz 录音和重采样兼容路径。
+- 无线 CarPlay 的认证 Wi-Fi 隧道建立后，断开原车 HFP/A2DP/AVRCP，避免原车蓝牙播放器反向暂停 CarPlay 音乐。
+- 检测车辆重新启动后蓝牙重新连接，并在短暂稳定等待后再次隔离相关蓝牙通道。播放触发的复查采用事件驱动，最多每 30 秒执行一次。
+- 增加更精确的无线连接阶段和麦克风诊断信息。日志总量限制在约 4 MiB，不记录通话音频或协议载荷。
 
-## Vehicle-test status
+## 实车验证情况
 
-- Wireless navigation, touch, music and steering-wheel controls: verified.
-- System calls, incoming and outgoing, with the iPhone locked: verified.
-- Incoming WeChat calls with the iPhone locked: verified.
-- Outgoing WeChat call started from CarPlay while the phone is locked: known limitation; the call may remain silent until the phone is woken.
-- Wired USB: experimental; the head unit detects the iPhone but its firmware does not complete the Android USB Host permission step.
+- 无线导航、触控、音乐和方向盘按键：已验证。
+- iPhone 锁屏状态下的系统电话呼入和呼出：已验证。
+- iPhone 锁屏状态下的微信语音来电：已验证。
+- iPhone 锁屏时从 CarPlay 主动拨出的微信语音：存在已知限制，可能一直无声，点亮手机后恢复。
+- 有线 USB：实验功能；车机能够识别 iPhone，但原厂固件没有完成 Android USB Host 授权步骤。
 
-## Installation and upgrade
+## 安装与升级
 
-Install as an update over the existing EadoPlay package to preserve settings. The target Changan firmware may require the engineering-ADB replacement procedure documented in `docs/长安逸动2018车机ADB安装APK操作手册.md`.
+建议在已有 EadoPlay 上覆盖升级，以保留设置。目标长安车机可能需要按照 [ADB 安装操作手册](长安逸动2018车机ADB安装APK操作手册.md) 使用工程 ADB 替换安装。
 
-The attached standalone APK contains the experimental accessory identity described in `SECURITY.md` and `docs/THIRD_PARTY_NOTICES.md`. It is not Apple-certified, is extractable by recipients and may stop working with a future iOS release. The source tree contains no accessory private key, Android signing key or real pairing record.
+附件中的独立 APK 包含 [安全说明](../SECURITY.md) 和 [第三方声明](THIRD_PARTY_NOTICES.md) 所述的实验性配件身份。它未获得 Apple 官方认证，接收 APK 的任何人都可以提取该身份，并且未来 iOS 版本可能不再接受。公开源码不包含配件私钥、Android 签名密钥或真实手机配对记录。
 
-## Artifact
+## 安装包信息
 
-- File: `EadoPlay-r28.apk`
-- Package: `com.eadoplay.carplay`
-- Version: `0.2.7-4.4-eado-r28` (`versionCode 38`)
-- Minimum Android version: Android 4.4 / API 19
-- Size: 10,182,994 bytes (9.711 MiB)
-- SHA-256: `9ca16724a2606021325f728c74565365ec751afecd0d35cf230e8b9168f30abd`
-- Signature: Android debug/test certificate, v1 and v2 verified. Updating a differently signed installation may require the documented engineering-ADB replacement procedure.
+- 文件：`EadoPlay-r28.apk`
+- 包名：`com.eadoplay.carplay`
+- 版本：`0.2.7-4.4-eado-r28`（`versionCode 38`）
+- 最低 Android 版本：Android 4.4 / API 19
+- 大小：10,182,994 字节（9.711 MiB）
+- SHA-256：`9ca16724a2606021325f728c74565365ec751afecd0d35cf230e8b9168f30abd`
+- 签名：Android 调试/测试证书，已验证 v1、v2 签名。若当前安装包签名不同，可能需要使用文档中的工程 ADB 替换安装方法。

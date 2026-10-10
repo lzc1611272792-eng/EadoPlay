@@ -1,16 +1,16 @@
 # EadoPlay 0.2.7-4.4-eado-r28 — 2026-10-10
 
-- Add separate 20–100% software-volume controls for CarPlay music and navigation guidance. Gain is applied to decoded PCM so it works on the target Android 4.4 audio HAL while preserving CarPlay navigation ducking.
-- Add the Changan Coagent microphone-focus path and an Android 4.4 capture fallback that records at 16 kHz and resamples to the CarPlay-negotiated rate. System calls and incoming WeChat calls were verified with the phone locked.
-- Add microphone negotiation, recorder, encoder and first-packet diagnostics without recording call audio or protocol payloads.
-- Restore the r17 wireless handoff behavior by disconnecting the factory HFP/A2DP/AVRCP profiles only after the authenticated Wi-Fi CarPlay tunnel is active; pairing remains intact and profiles are restored when CarPlay closes.
-- Monitor Bluetooth adapter/profile reconnection after an ignition cycle and reapply isolation after a short settling delay. Playback-triggered checking is event-driven and limited to at most once every 30 seconds.
-- Add elapsed-time diagnostics for the wireless connection stages. Runtime logs remain bounded to one 512 KiB current file plus seven archives (about 4 MiB maximum).
-- Keep wired USB marked experimental: the target firmware still detects the iPhone but does not complete the Android USB Host permission step.
-- Known limitation: an outgoing WeChat call started from CarPlay while the iPhone is locked may remain silent until the phone is woken. System calls in both directions and incoming WeChat calls were verified.
-- Rebuild the release artifact from a clean tree, removing about 4.24 MiB of accidental ZIP padding. The standalone APK is 9.711 MiB; no runtime feature was removed.
+- 增加 CarPlay 音乐与导航 20%–100% 独立软件音量。增益直接作用于解码后的 PCM，兼容目标车机的 Android 4.4 音频驱动，并保留导航播报时自动压低音乐的效果。
+- 增加长安 Coagent 麦克风焦点通道，以及 Android 4.4 的 16 kHz 录音和重采样兼容方案。iPhone 锁屏状态下的系统电话和微信来电已通过实车验证。
+- 增加麦克风协商、录音器、编码器和首包诊断，不记录通话音频或协议载荷。
+- 恢复 r17 的无线交接逻辑：仅在认证 Wi-Fi CarPlay 隧道建立后断开原车 HFP/A2DP/AVRCP；保留蓝牙配对，退出 CarPlay 时恢复相关通道。
+- 监控车辆重新启动后的蓝牙适配器及通道重连，并在短暂稳定等待后再次执行隔离。播放触发的检查采用事件驱动，最多每 30 秒执行一次。
+- 增加无线连接各阶段耗时诊断。运行日志限制为一个 512 KiB 当前文件和七个归档文件，总量最多约 4 MiB。
+- 有线 USB 继续标记为实验功能：目标车机可以识别 iPhone，但原厂固件仍未完成 Android USB Host 授权步骤。
+- 已知限制：iPhone 锁屏时，从 CarPlay 主动拨出的微信语音可能一直无声，点亮手机后恢复。系统电话双向通话和微信来电已验证。
+- 从干净源码重新构建发布包，移除约 4.24 MiB 的意外 ZIP 填充。独立 APK 大小为 9.711 MiB，未删除任何运行功能。
 
-Intermediate r23–r27 packages were vehicle-test iterations and are included cumulatively in r28 rather than published as separate releases.
+r23–r27 是实车调试过程中的中间测试包，其改动已经合并进 r28，因此不再分别发布。
 
 # EadoPlay 0.2.7-4.4-eado-r22 — 2026-10-09
 
